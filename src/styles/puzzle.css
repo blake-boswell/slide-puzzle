@@ -30,6 +30,8 @@
   aspect-ratio: 1/1;
   /* transform: translate3d(0, 0, 0); */
   transition: transform 150ms ease-out;
+  cursor: pointer;
+  user-select: none;
 }
 
 .puzzle__footer {
