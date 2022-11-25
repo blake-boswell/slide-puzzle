@@ -1,0 +1,37 @@
+.puzzle {
+  --row-count: 3;
+  --col-count: 3;
+  --gap: 4px;
+  max-width: 600px;
+  max-height: 600px;
+}
+
+.puzzle__board {
+  border: 1px solid black;
+  /* padding: 4px; */
+  position: relative;
+  height: 600px;
+  width: 600px;
+  /* display: grid;
+  grid-template-rows: repeat(var(--row-count), 1fr);
+  grid-template-columns: repeat(var(--col-count), 1fr);
+  gap: var(--gap); */
+}
+
+.puzzle-piece {
+  /* transition 100% - gap */
+  will-change: transform;
+  background-color: #e76f51;
+  border: 1px solid black;
+  font-size: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1/1;
+  /* transform: translate3d(0, 0, 0); */
+  transition: transform 150ms ease-out;
+}
+
+.puzzle-piece--empty {
+  background-color: transparent;
+}
