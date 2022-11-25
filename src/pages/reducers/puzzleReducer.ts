@@ -1,8 +1,19 @@
 import { PuzzleAction, PuzzleState } from '../../types/puzzle';
+import { scramble } from '../../util/puzzleUtils';
 
 export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
   const { type, id } = action;
   const { emptyLocation, pieces, rowSize, columnSize } = state;
+  // Check for control changes
+  if (type === 'reset') {
+    const newPuzzle = scramble(rowSize, columnSize);
+    return newPuzzle;
+  } else if (type === 'resize') {
+    const { rowSize: row, colSize: col } = action.size;
+    const newPuzzle = scramble(row, col);
+    return newPuzzle;
+  }
+
   const { row: emptyRow, column: emptyCol } = emptyLocation;
   const rowMin = 0;
   const rowMax = rowSize - 1;

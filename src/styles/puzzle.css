@@ -32,6 +32,9 @@
   transition: transform 150ms ease-out;
 }
 
-.puzzle-piece--empty {
-  background-color: transparent;
+.puzzle__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
 }

@@ -15,6 +15,16 @@ export interface PuzzleState {
 }
 
 export interface PuzzleAction {
-  id: number;
-  type: 'move-up' | 'move-down' | 'move-left' | 'move-right';
+  id?: number;
+  type:
+    | 'move-up'
+    | 'move-down'
+    | 'move-left'
+    | 'move-right'
+    | 'reset'
+    | 'resize';
+  size?: {
+    rowSize: number;
+    colSize: number;
+  };
 }

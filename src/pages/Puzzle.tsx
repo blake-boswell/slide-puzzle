@@ -6,15 +6,38 @@ import React, {
   useState,
 } from 'react';
 import { PuzzleState, PuzzleAction, PuzzlePiece } from '../types/puzzle';
-import { scramble } from '../util/puzzleUtils';
 import { puzzleReducer } from './reducers/puzzleReducer';
 
 const Puzzle = () => {
-  const [focusedPiece, setFocusedPiece] = useState(-1);
+  const [rowSize, setRowSize] = useState(3);
+  const [colSize, setColSize] = useState(3);
   const [puzzle, dispatchMove] = useReducer<Reducer<PuzzleState, PuzzleAction>>(
     puzzleReducer,
-    scramble(3, 3),
+    {
+      rowSize,
+      columnSize: colSize,
+      pieces: [
+        { id: 1, row: 0, column: 0 },
+        { id: 2, row: 0, column: 1 },
+        { id: 3, row: 0, column: 2 },
+        { id: 4, row: 1, column: 0 },
+        { id: 5, row: 1, column: 1 },
+        { id: 6, row: 1, column: 2 },
+        { id: 7, row: 2, column: 0 },
+        { id: 8, row: 2, column: 1 },
+        { id: 9, row: 2, column: 1 },
+      ],
+      emptyLocation: {
+        row: 2,
+        column: 2,
+      },
+    },
   );
+  const [focusedPiece, setFocusedPiece] = useState(-1);
+
+  useEffect(() => {
+    dispatchMove({ type: 'resize', size: { rowSize, colSize } });
+  }, [rowSize, colSize]);
 
   const isPuzzleComplete = useMemo(() => {
     for (let i = 0; i < puzzle.pieces.length - 1; i++) {
@@ -159,9 +182,30 @@ const Puzzle = () => {
     }
   };
 
+  const handleSizeChange: React.ChangeEventHandler<HTMLSelectElement> = e => {
+    const matrixSize = e.target.value;
+    const [row, col] = matrixSize.split('x');
+    const newRowSize = Number.parseInt(row);
+    const newColSize = Number.parseInt(col);
+    setRowSize(newRowSize);
+    setColSize(newColSize);
+  };
+
   return (
     <div className="puzzle">
-      <div className="puzzle__control"></div>
+      <div className="puzzle__control">
+        <label htmlFor="size-selector">Size:</label>
+        <select id="size-selector" onChange={handleSizeChange}>
+          <option value="3x3">3x3</option>
+          <option value="4x4">4x4</option>
+          <option value="5x5">5x5</option>
+          <option value="6x6">6x6</option>
+          <option value="7x7">7x7</option>
+          <option value="8x8">8x8</option>
+          <option value="9x9">9x9</option>
+          <option value="10x10">10x10</option>
+        </select>
+      </div>
       <div className="puzzle__board">
         {puzzle.pieces.map(piece =>
           piece.column === puzzle.emptyLocation.column &&
@@ -187,7 +231,15 @@ const Puzzle = () => {
           ),
         )}
       </div>
-      <div>Puzzle status: {isPuzzleComplete ? 'Done' : 'In progress'}</div>
+      <div className="puzzle__footer">
+        <div>Puzzle status: {isPuzzleComplete ? 'Done' : 'In progress'}</div>
+        <button
+          className="btn--danger"
+          onClick={() => dispatchMove({ type: 'reset' })}
+        >
+          Scramble
+        </button>
+      </div>
     </div>
   );
 };
