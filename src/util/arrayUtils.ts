@@ -49,3 +49,22 @@ export function matrixSwap(
   copy[bRow][bCol] = temp;
   return copy;
 }
+
+// Fisher-Yates shuffle
+export function shuffle(arr: any[]) {
+  let numToShuffle = arr.length;
+
+  // While there are elements to shuffle
+  while (numToShuffle) {
+    // Pick a random item
+    const randIndex = Math.floor(Math.random() * numToShuffle);
+    numToShuffle--;
+
+    // Swap item with the current element
+    const temp = arr[numToShuffle];
+    arr[numToShuffle] = arr[randIndex];
+    arr[randIndex] = temp;
+  }
+
+  return arr;
+}
