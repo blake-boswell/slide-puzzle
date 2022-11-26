@@ -14,21 +14,33 @@
   aspect-ratio: 1/1;
   width: 100%;
   max-height: 90vh;
-  margin-inline: auto;
+  margin: 16px auto 0 auto;
 }
 
 .puzzle-piece {
   will-change: transform;
+  aspect-ratio: 1/1;
+  transition: transform 150ms ease-out;
+  cursor: pointer;
+  user-select: none;
+}
+
+.puzzle-piece__content {
   background-color: #e76f51;
   border: 1px solid black;
   font-size: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
-  aspect-ratio: 1/1;
-  transition: transform 150ms ease-out;
-  cursor: pointer;
-  user-select: none;
+  height: 100%;
+  width: 100%;
+}
+
+.puzzle-piece__content--complete {
+  animation-name: jump;
+  animation-duration: 0.5s;
+  animation-timing-function: ease-out;
+  animation-iteration-count: 1;
 }
 
 .puzzle__footer {
@@ -36,6 +48,29 @@
   justify-content: space-between;
   align-items: center;
   margin-top: 12px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+@keyframes jump {
+  0% {
+    transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+  }
+
+  67% {
+    transform: scale3d(1.1, 1.1, 1.1) translate3d(-10%, -10%, 0);
+  }
+
+  80% {
+    transform: scale3d(1.1, 1.1, 1.1) translate3d(-10%, -10%, 0);
+  }
+
+  100% {
+    transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+  }
 }
 
 @media (min-width: 992px) {

@@ -22,7 +22,8 @@ export interface PuzzleAction {
     | 'move-left'
     | 'move-right'
     | 'reset'
-    | 'resize';
+    | 'resize'
+    | 'auto-complete';
   size?: {
     rowSize: number;
     colSize: number;

@@ -12,6 +12,24 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
     const { rowSize: row, colSize: col } = action.size;
     const newPuzzle = scramble(row, col);
     return newPuzzle;
+  } else if (type === 'auto-complete') {
+    return {
+      ...state,
+      pieces: pieces.map(piece => {
+        // Set row
+        const row = Math.floor((piece.id - 1) / rowSize);
+        const column = (piece.id - 1) % rowSize;
+        return {
+          id: piece.id,
+          row,
+          column,
+        };
+      }),
+      emptyLocation: {
+        row: rowSize - 1,
+        column: columnSize - 1,
+      },
+    };
   }
 
   const { row: emptyRow, column: emptyCol } = emptyLocation;

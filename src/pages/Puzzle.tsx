@@ -191,6 +191,10 @@ const Puzzle = () => {
     setColSize(newColSize);
   };
 
+  const getDiagonalDelayTime = (piece: PuzzlePiece) => {
+    return `${(piece.row + piece.column) * 0.1}s`;
+  };
+
   return (
     <div className="puzzle">
       <div className="puzzle__control">
@@ -213,10 +217,6 @@ const Puzzle = () => {
             <div
               id={`puzzle-piece-${piece.id}`}
               className="puzzle-piece"
-              key={piece.id}
-              onClick={() => movePiece(piece.id, piece.row, piece.column)}
-              onKeyDown={e => handleKeyDown(e, piece)}
-              onFocus={() => setFocusedPiece(piece.id)}
               style={{
                 position: 'absolute',
                 transform: `translate3d(${piece.column * 100}%, ${piece.row *
@@ -224,21 +224,39 @@ const Puzzle = () => {
                 height: `${(1 / puzzle.columnSize) * 100}%`,
                 width: `${(1 / puzzle.rowSize) * 100}%`,
               }}
+              key={piece.id}
+              onClick={() => movePiece(piece.id, piece.row, piece.column)}
+              onKeyDown={e => handleKeyDown(e, piece)}
+              onFocus={() => setFocusedPiece(piece.id)}
               tabIndex={piece.row * puzzle.rowSize + piece.column + 1}
             >
-              {piece.id}
+              <div
+                className={`puzzle-piece__content${
+                  isPuzzleComplete ? ' puzzle-piece__content--complete' : ''
+                }`}
+                style={{
+                  animationDelay: getDiagonalDelayTime(piece),
+                }}
+              >
+                {piece.id}
+              </div>
             </div>
           ),
         )}
       </div>
       <div className="puzzle__footer">
         <div>Puzzle status: {isPuzzleComplete ? 'Done' : 'In progress'}</div>
-        <button
-          className="btn--danger"
-          onClick={() => dispatchMove({ type: 'reset' })}
-        >
-          Scramble
-        </button>
+        <div className="action-buttons">
+          <button onClick={() => dispatchMove({ type: 'auto-complete' })}>
+            Complete
+          </button>
+          <button
+            className="btn--danger"
+            onClick={() => dispatchMove({ type: 'reset' })}
+          >
+            Scramble
+          </button>
+        </div>
       </div>
     </div>
   );
