@@ -7,6 +7,16 @@
   justify-content: center;
 }
 
+.puzzle__control {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+}
+
+.control-end {
+  margin-left: auto;
+}
+
 .puzzle__board {
   border: 1px solid black;
   /* padding: 4px; */

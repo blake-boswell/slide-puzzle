@@ -1,8 +1,10 @@
 import React, {
   Reducer,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
 } from 'react';
 import { PuzzleState, PuzzleAction, PuzzlePiece } from '../types/puzzle';
@@ -34,6 +36,10 @@ const Puzzle = () => {
     },
   );
   const [focusedPiece, setFocusedPiece] = useState(-1);
+  const [imageSource, setImageSource] = useState('');
+  const [imageHeight, setImageHeight] = useState(0);
+  const [imageWidth, setImageWidth] = useState(0);
+  const puzzleRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     dispatchMove({ type: 'resize', size: { rowSize, colSize } });
@@ -66,8 +72,6 @@ const Puzzle = () => {
       }
     }
   }, [focusedPiece]);
-
-  // Position absolute puzzle pieces
 
   const movePiece = (id: number, row: number, col: number) => {
     // Determine direction to move
@@ -195,22 +199,77 @@ const Puzzle = () => {
     return `${(piece.row + piece.column) * 0.1}s`;
   };
 
+  const handleImageLoad: React.ChangeEventHandler<HTMLInputElement> = e => {
+    const { files } = e.target;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      if (!file.type.startsWith('image/')) {
+        continue;
+      }
+
+      console.log(file);
+      const reader = new FileReader();
+      reader.onload = e => {
+        const { result } = e.target;
+        if (typeof result === 'string') {
+          const image = new Image();
+          image.src = result;
+          image.decode().then(() => {
+            if (puzzleRef.current) {
+              const puzzleWidth = puzzleRef.current.offsetWidth;
+              const newImageWidth =
+                image.width > puzzleWidth ? puzzleWidth : image.width;
+              const newImageHeight =
+                image.width > puzzleWidth
+                  ? (puzzleWidth * image.height) / image.width
+                  : image.height;
+              setImageHeight(newImageHeight);
+              setImageWidth(newImageWidth);
+              setImageSource(result);
+            } else {
+              setImageHeight(image.height);
+              setImageWidth(image.width);
+              setImageSource(result);
+            }
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <div className="puzzle">
+    <div className="puzzle" ref={puzzleRef}>
       <div className="puzzle__control">
-        <label htmlFor="size-selector">Size:</label>
-        <select id="size-selector" onChange={handleSizeChange}>
-          <option value="3x3">3x3</option>
-          <option value="4x4">4x4</option>
-          <option value="5x5">5x5</option>
-          <option value="6x6">6x6</option>
-          <option value="7x7">7x7</option>
-          <option value="8x8">8x8</option>
-          <option value="9x9">9x9</option>
-          <option value="10x10">10x10</option>
-        </select>
+        <label htmlFor="puzzle-image">Puzzle image: </label>
+        <input
+          id="puzzle-image"
+          type="file"
+          accept="image/*"
+          onChange={handleImageLoad}
+        />
+        <div className="control-end">
+          <label htmlFor="size-selector">Size:</label>
+          <select id="size-selector" onChange={handleSizeChange}>
+            <option value="3x3">3x3</option>
+            <option value="4x4">4x4</option>
+            <option value="5x5">5x5</option>
+            <option value="6x6">6x6</option>
+            <option value="7x7">7x7</option>
+            <option value="8x8">8x8</option>
+            <option value="9x9">9x9</option>
+            <option value="10x10">10x10</option>
+          </select>
+        </div>
       </div>
-      <div className="puzzle__board">
+      <div
+        className="puzzle__board"
+        style={{
+          aspectRatio:
+            imageWidth && imageHeight ? imageWidth / imageHeight : '1/1',
+        }}
+      >
         {puzzle.pieces.map(piece =>
           piece.column === puzzle.emptyLocation.column &&
           piece.row === puzzle.emptyLocation.row ? null : (
@@ -235,14 +294,27 @@ const Puzzle = () => {
                   isPuzzleComplete ? ' puzzle-piece__content--complete' : ''
                 }`}
                 style={{
+                  backgroundImage: `url(${imageSource})`,
+                  backgroundSize: `${imageWidth}px ${imageHeight}px`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundOrigin: 'border-box',
+                  backgroundPosition: `left ${((piece.id - 1) %
+                    puzzle.rowSize) *
+                    (1 / (puzzle.rowSize - 1)) *
+                    100}% top ${Math.floor((piece.id - 1) / puzzle.columnSize) *
+                    (1 / (puzzle.columnSize - 1)) *
+                    100}%`,
                   animationDelay: getDiagonalDelayTime(piece),
                 }}
               >
-                {piece.id}
+                {!imageSource && piece.id}
               </div>
             </div>
           ),
         )}
+        <div style={{ display: 'none' }}>
+          <img src={imageSource} />
+        </div>
       </div>
       <div className="puzzle__footer">
         <div>Puzzle status: {isPuzzleComplete ? 'Done' : 'In progress'}</div>
