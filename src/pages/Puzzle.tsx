@@ -338,13 +338,12 @@ const Puzzle = () => {
           )}
         </div>
         <div className="puzzle__footer">
-          <div>Puzzle status: {isPuzzleComplete ? 'Done' : 'In progress'}</div>
           <div className="action-buttons">
             <button onClick={() => dispatchMove({ type: 'auto-complete' })}>
               Complete
             </button>
             <button
-              className="btn--danger"
+              className="btn--accent"
               onClick={() => dispatchMove({ type: 'reset' })}
             >
               Scramble
@@ -355,10 +354,14 @@ const Puzzle = () => {
       <div className="puzzle-reference">
         {imageSource && (
           <>
-            <div className="h3">Reference</div>
-            <button onClick={showModal} className="btn-text">
-              <img src={imageSource} className="puzzle-reference__image" />
-            </button>
+            <div className="puzzle-reference__heading">
+              <span className="h4">Reference</span>
+            </div>
+            <div className="puzzle-reference__body">
+              <button onClick={showModal} className="btn-text">
+                <img src={imageSource} className="puzzle-reference__image" />
+              </button>
+            </div>
           </>
         )}
       </div>

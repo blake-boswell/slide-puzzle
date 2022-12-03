@@ -30,6 +30,12 @@ button:focus-visible,
   border-color: transparent;
 }
 
+.btn--accent {
+  background-color: var(--color-accent);
+  color: var(--color-text-white);
+  border-color: transparent;
+}
+
 .btn-text {
   padding: 4px;
   border: 0;

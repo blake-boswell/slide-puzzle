@@ -1,0 +1,59 @@
+h1,
+.h1 {
+  font-size: 96px;
+  letter-spacing: -1.5;
+  font-weight: 300;
+}
+
+h2,
+.h2 {
+  font-size: 60px;
+  letter-spacing: -0.5;
+  font-weight: 300;
+}
+
+h3,
+.h3 {
+  font-size: 48px;
+  letter-spacing: 0;
+}
+
+h4,
+.h4 {
+  font-size: 34px;
+  letter-spacing: 0.25;
+}
+
+h5,
+.h5 {
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+h6,
+.h6 {
+  font-size: 20px;
+  letter-spacing: 0.15;
+  font-weight: 500;
+}
+
+.subtitle {
+  font-size: 16px;
+  letter-spacing: 0.15;
+}
+
+.small {
+  font-size: 14px;
+  letter-spacing: 0.25;
+  font-weight: 500;
+}
+
+.caption {
+  font-size: 12px;
+  letter-spacing: 0.4;
+}
+
+.overline {
+  font-size: 10px;
+  letter-spacing: 1.5;
+}
