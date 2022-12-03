@@ -6,7 +6,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { PuzzleState, PuzzleAction, PuzzlePiece } from '../types/puzzle';
+import PuzzlePiece from '../components/PuzzlePiece';
+import {
+  PuzzleState,
+  PuzzleAction,
+  PuzzlePiece as PuzzlePieceType,
+} from '../types/puzzle';
 import { puzzleReducer } from './reducers/puzzleReducer';
 
 const Puzzle = () => {
@@ -88,7 +93,7 @@ const Puzzle = () => {
 
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLDivElement>,
-    piece: PuzzlePiece,
+    piece: PuzzlePieceType,
   ) => {
     const { code } = e;
     let spacesAway = 1;
@@ -192,10 +197,6 @@ const Puzzle = () => {
     const newColSize = Number.parseInt(col);
     setRowSize(newRowSize);
     setColSize(newColSize);
-  };
-
-  const getDiagonalDelayTime = (piece: PuzzlePiece) => {
-    return `${(piece.row + piece.column) * 0.1}s`;
   };
 
   const handleImageLoad: React.ChangeEventHandler<HTMLInputElement> = e => {
@@ -305,26 +306,19 @@ const Puzzle = () => {
               onFocus={() => setFocusedPiece(piece.id)}
               tabIndex={piece.row * puzzle.rowSize + piece.column + 1}
             >
-              <div
-                className={`puzzle-piece__content${
-                  isPuzzleComplete ? ' puzzle-piece__content--complete' : ''
-                }`}
-                style={{
-                  backgroundImage: `url(${imageSource})`,
-                  backgroundSize: `${imageWidth}px ${imageHeight}px`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundOrigin: 'border-box',
-                  backgroundPosition: `left ${((piece.id - 1) %
-                    puzzle.rowSize) *
-                    (1 / (puzzle.rowSize - 1)) *
-                    100}% top ${Math.floor((piece.id - 1) / puzzle.columnSize) *
-                    (1 / (puzzle.columnSize - 1)) *
-                    100}%`,
-                  animationDelay: getDiagonalDelayTime(piece),
-                }}
-              >
-                {!imageSource && piece.id}
-              </div>
+              <PuzzlePiece
+                className={
+                  isPuzzleComplete
+                    ? 'puzzle-piece__content puzzle-piece__content--complete'
+                    : 'puzzle-piece__content'
+                }
+                id={piece.id}
+                src={imageSource}
+                width={imageWidth}
+                height={imageHeight}
+                rowSize={puzzle.rowSize}
+                columnSize={puzzle.columnSize}
+              />
             </div>
           ),
         )}
