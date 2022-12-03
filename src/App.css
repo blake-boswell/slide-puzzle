@@ -2,3 +2,17 @@
 @import './styles/button.css';
 @import './styles/puzzle.css';
 @import './styles/modal.css';
+@import './styles/input.css';
+
+.theme-control {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.theme-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

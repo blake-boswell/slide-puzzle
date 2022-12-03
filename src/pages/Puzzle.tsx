@@ -273,7 +273,9 @@ const Puzzle = () => {
     <div className="puzzle-container">
       <div className="puzzle" ref={puzzleRef}>
         <div className="puzzle__control">
-          <label htmlFor="puzzle-image">Puzzle image: </label>
+          <label htmlFor="puzzle-image" className="file-input">
+            Upload image
+          </label>
           <input
             id="puzzle-image"
             type="file"
@@ -334,9 +336,6 @@ const Puzzle = () => {
               </div>
             ),
           )}
-          {/* <div style={{ display: 'none' }}>
-            <img src={imageSource} />
-          </div> */}
         </div>
         <div className="puzzle__footer">
           <div>Puzzle status: {isPuzzleComplete ? 'Done' : 'In progress'}</div>
@@ -356,7 +355,7 @@ const Puzzle = () => {
       <div className="puzzle-reference">
         {imageSource && (
           <>
-            <div>Reference</div>
+            <div className="h3">Reference</div>
             <button onClick={showModal} className="btn-text">
               <img src={imageSource} className="puzzle-reference__image" />
             </button>

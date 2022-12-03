@@ -1,11 +1,40 @@
+button,
+.file-input {
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--color-button-base);
+  cursor: pointer;
+  transition: border-color 0.25s;
+  color: var(--color-text);
+}
+
+button:hover,
+.file-input:hover {
+  border-color: #646cff;
+}
+
+button:focus,
+button:focus-visible,
+.file-input:focus,
+.file-input:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
 .btn--danger {
-  background-color: #e75151;
+  background-color: var(--color-danger);
+  color: var(--color-text-white);
+  border-color: transparent;
 }
 
 .btn-text {
-  padding: 0;
+  padding: 4px;
   border: 0;
   border-radius: 0;
+  background-color: transparent;
 }
 
 .close-button {
