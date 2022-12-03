@@ -44,6 +44,7 @@ const Puzzle = () => {
   const [imageHeight, setImageHeight] = useState(0);
   const [imageWidth, setImageWidth] = useState(0);
   const puzzleRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     dispatchMove({ type: 'resize', size: { rowSize, colSize } });
@@ -256,88 +257,120 @@ const Puzzle = () => {
     }
   };
 
+  const showModal = () => {
+    if (typeof modalRef.current.showModal === 'function') {
+      modalRef.current.showModal();
+    }
+  };
+
+  const hideModal = () => {
+    if (typeof modalRef.current.close === 'function') {
+      modalRef.current.close();
+    }
+  };
+
   return (
-    <div className="puzzle" ref={puzzleRef}>
-      <div className="puzzle__control">
-        <label htmlFor="puzzle-image">Puzzle image: </label>
-        <input
-          id="puzzle-image"
-          type="file"
-          accept="image/*"
-          onChange={handleImageLoad}
-        />
-        <div className="control-end">
-          <label htmlFor="size-selector">Size:</label>
-          <select id="size-selector" onChange={handleSizeChange}>
-            <option value="3x3">3x3</option>
-            <option value="4x4">4x4</option>
-            <option value="5x5">5x5</option>
-            <option value="6x6">6x6</option>
-            <option value="7x7">7x7</option>
-            <option value="8x8">8x8</option>
-            <option value="9x9">9x9</option>
-            <option value="10x10">10x10</option>
-          </select>
+    <div className="puzzle-container">
+      <div className="puzzle" ref={puzzleRef}>
+        <div className="puzzle__control">
+          <label htmlFor="puzzle-image">Puzzle image: </label>
+          <input
+            id="puzzle-image"
+            type="file"
+            accept="image/*"
+            onChange={handleImageLoad}
+          />
+          <div className="control-end">
+            <label htmlFor="size-selector">Size:</label>
+            <select id="size-selector" onChange={handleSizeChange}>
+              <option value="3x3">3x3</option>
+              <option value="4x4">4x4</option>
+              <option value="5x5">5x5</option>
+              <option value="6x6">6x6</option>
+              <option value="7x7">7x7</option>
+              <option value="8x8">8x8</option>
+              <option value="9x9">9x9</option>
+              <option value="10x10">10x10</option>
+            </select>
+          </div>
         </div>
-      </div>
-      <div
-        className="puzzle__board"
-        style={{
-          aspectRatio:
-            imageWidth && imageHeight ? imageWidth / imageHeight : '1/1',
-        }}
-      >
-        {puzzle.pieces.map(piece =>
-          piece.column === puzzle.emptyLocation.column &&
-          piece.row === puzzle.emptyLocation.row ? null : (
-            <div
-              id={`puzzle-piece-${piece.id}`}
-              className="puzzle-piece"
-              style={{
-                position: 'absolute',
-                transform: `translate3d(${piece.column * 100}%, ${piece.row *
-                  100}%, 0)`,
-                height: `${(1 / puzzle.columnSize) * 100}%`,
-                width: `${(1 / puzzle.rowSize) * 100}%`,
-              }}
-              key={piece.id}
-              onClick={() => movePiece(piece.id, piece.row, piece.column)}
-              onKeyDown={e => handleKeyDown(e, piece)}
-              onFocus={() => setFocusedPiece(piece.id)}
-              tabIndex={piece.row * puzzle.rowSize + piece.column + 1}
+        <div
+          className="puzzle__board"
+          style={{
+            aspectRatio:
+              imageWidth && imageHeight ? imageWidth / imageHeight : '1/1',
+          }}
+        >
+          {puzzle.pieces.map(piece =>
+            piece.column === puzzle.emptyLocation.column &&
+            piece.row === puzzle.emptyLocation.row ? null : (
+              <div
+                id={`puzzle-piece-${piece.id}`}
+                className="puzzle-piece"
+                style={{
+                  position: 'absolute',
+                  transform: `translate3d(${piece.column * 100}%, ${piece.row *
+                    100}%, 0)`,
+                  height: `${(1 / puzzle.columnSize) * 100}%`,
+                  width: `${(1 / puzzle.rowSize) * 100}%`,
+                }}
+                key={piece.id}
+                onClick={() => movePiece(piece.id, piece.row, piece.column)}
+                onKeyDown={e => handleKeyDown(e, piece)}
+                onFocus={() => setFocusedPiece(piece.id)}
+                tabIndex={piece.row * puzzle.rowSize + piece.column + 1}
+              >
+                <PuzzlePiece
+                  className={
+                    isPuzzleComplete
+                      ? 'puzzle-piece__content puzzle-piece__content--complete'
+                      : 'puzzle-piece__content'
+                  }
+                  id={piece.id}
+                  src={imageSource}
+                  rowSize={puzzle.rowSize}
+                  columnSize={puzzle.columnSize}
+                />
+              </div>
+            ),
+          )}
+          {/* <div style={{ display: 'none' }}>
+            <img src={imageSource} />
+          </div> */}
+        </div>
+        <div className="puzzle__footer">
+          <div>Puzzle status: {isPuzzleComplete ? 'Done' : 'In progress'}</div>
+          <div className="action-buttons">
+            <button onClick={() => dispatchMove({ type: 'auto-complete' })}>
+              Complete
+            </button>
+            <button
+              className="btn--danger"
+              onClick={() => dispatchMove({ type: 'reset' })}
             >
-              <PuzzlePiece
-                className={
-                  isPuzzleComplete
-                    ? 'puzzle-piece__content puzzle-piece__content--complete'
-                    : 'puzzle-piece__content'
-                }
-                id={piece.id}
-                src={imageSource}
-                rowSize={puzzle.rowSize}
-                columnSize={puzzle.columnSize}
-              />
-            </div>
-          ),
+              Scramble
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="puzzle-reference">
+        {imageSource && (
+          <>
+            <div>Reference</div>
+            <button onClick={showModal} className="btn-text">
+              <img src={imageSource} className="puzzle-reference__image" />
+            </button>
+          </>
         )}
-        <div style={{ display: 'none' }}>
-          <img src={imageSource} />
-        </div>
       </div>
-      <div className="puzzle__footer">
-        <div>Puzzle status: {isPuzzleComplete ? 'Done' : 'In progress'}</div>
-        <div className="action-buttons">
-          <button onClick={() => dispatchMove({ type: 'auto-complete' })}>
-            Complete
-          </button>
-          <button
-            className="btn--danger"
-            onClick={() => dispatchMove({ type: 'reset' })}
-          >
-            Scramble
+      <dialog ref={modalRef}>
+        <div className="modal-heading">
+          <button className="close-button" onClick={hideModal}>
+            &#x2715;
           </button>
         </div>
-      </div>
+        <img src={imageSource} className="puzzle-reference__image" />
+      </dialog>
     </div>
   );
 };

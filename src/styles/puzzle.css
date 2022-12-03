@@ -1,3 +1,9 @@
+.puzzle-container {
+  display: grid;
+  grid-template-columns: auto;
+  gap: 12px;
+}
+
 .puzzle {
   --row-count: 3;
   --col-count: 3;
@@ -65,6 +71,10 @@
   gap: 8px;
 }
 
+.puzzle-reference__image {
+  width: 100%;
+}
+
 @keyframes jump {
   0% {
     transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
@@ -84,7 +94,8 @@
 }
 
 @media (min-width: 992px) {
-  .puzzle {
-    width: 67%;
+  .puzzle-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
   }
 }

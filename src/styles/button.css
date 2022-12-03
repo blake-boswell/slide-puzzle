@@ -1,3 +1,13 @@
 .btn--danger {
   background-color: #e75151;
 }
+
+.btn-text {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.close-button {
+  margin-left: auto;
+}
