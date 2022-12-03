@@ -1,7 +1,6 @@
 import React, {
   Reducer,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
@@ -208,31 +207,48 @@ const Puzzle = () => {
         continue;
       }
 
-      console.log(file);
       const reader = new FileReader();
       reader.onload = e => {
         const { result } = e.target;
         if (typeof result === 'string') {
+          // Resize the image
           const image = new Image();
-          image.src = result;
-          image.decode().then(() => {
+          image.onload = e => {
+            let puzzleWidth;
             if (puzzleRef.current) {
-              const puzzleWidth = puzzleRef.current.offsetWidth;
-              const newImageWidth =
-                image.width > puzzleWidth ? puzzleWidth : image.width;
-              const newImageHeight =
-                image.width > puzzleWidth
-                  ? (puzzleWidth * image.height) / image.width
-                  : image.height;
-              setImageHeight(newImageHeight);
-              setImageWidth(newImageWidth);
-              setImageSource(result);
-            } else {
-              setImageHeight(image.height);
-              setImageWidth(image.width);
-              setImageSource(result);
+              puzzleWidth = puzzleRef.current.offsetWidth;
             }
-          });
+
+            const canvas = document.createElement('canvas');
+            const max_size = puzzleWidth;
+            let width = image.width;
+            let height = image.height;
+
+            // Resize to fit the puzzle
+            if (width > height) {
+              if (width > max_size) {
+                height *= max_size / width;
+                width = max_size;
+              }
+            } else {
+              if (height > max_size) {
+                width *= max_size / height;
+                height = max_size;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            console.log(width, height);
+
+            // Draw image on canvas
+            canvas.getContext('2d').drawImage(image, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+
+            setImageHeight(height);
+            setImageWidth(width);
+            setImageSource(dataUrl);
+          };
+          image.src = result;
         }
       };
       reader.readAsDataURL(file);
