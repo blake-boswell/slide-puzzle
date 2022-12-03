@@ -6,6 +6,10 @@
   margin-right: auto;
 }
 
+.d-block {
+  display: block;
+}
+
 @media (min-width: 576px) {
   .container {
     max-width: 540px;

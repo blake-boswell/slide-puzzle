@@ -5,3 +5,7 @@ input[type='file'] {
 .file-input {
   content: 'Upload image';
 }
+
+select {
+  padding: 4px;
+}

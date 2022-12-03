@@ -283,7 +283,9 @@ const Puzzle = () => {
             onChange={handleImageLoad}
           />
           <div className="control-end">
-            <label htmlFor="size-selector">Size:</label>
+            <label className="d-block" htmlFor="size-selector">
+              Size
+            </label>
             <select id="size-selector" onChange={handleSizeChange}>
               <option value="3x3">3x3</option>
               <option value="4x4">4x4</option>
