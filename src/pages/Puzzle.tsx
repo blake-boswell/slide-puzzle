@@ -314,8 +314,6 @@ const Puzzle = () => {
                 }
                 id={piece.id}
                 src={imageSource}
-                width={imageWidth}
-                height={imageHeight}
                 rowSize={puzzle.rowSize}
                 columnSize={puzzle.columnSize}
               />

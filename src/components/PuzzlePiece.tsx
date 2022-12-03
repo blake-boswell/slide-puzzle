@@ -1,8 +1,6 @@
 interface PuzzlePieceProps {
   id: number;
   src: string;
-  height: number;
-  width: number;
   rowSize: number;
   columnSize: number;
   className?: string;
@@ -21,8 +19,6 @@ const getDiagonalDelayTime = (
 const PuzzlePiece = ({
   id,
   src,
-  height,
-  width,
   rowSize,
   columnSize,
   className = '',
@@ -32,7 +28,7 @@ const PuzzlePiece = ({
       className={className}
       style={{
         backgroundImage: `url(${src})`,
-        backgroundSize: `${width}px ${height}px`,
+        backgroundSize: `${rowSize * 100}% ${columnSize * 100}%`,
         backgroundRepeat: 'no-repeat',
         backgroundOrigin: 'border-box',
         backgroundPosition: `left ${((id - 1) % rowSize) *
