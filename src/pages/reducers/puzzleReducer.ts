@@ -45,21 +45,27 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
       case 'move-up': {
         // Check to see if move is legal
         if (row === rowMin) return state;
-        if (!(row - 1 === emptyRow && column === emptyCol)) return state;
+        if (!(row > emptyRow && column === emptyCol)) return state;
 
         // Legal move
         const newPieces = pieces.map(piece => {
-          if (piece.id === id) {
-            // Update row
+          if (
+            piece.row > emptyRow &&
+            piece.column === emptyCol &&
+            piece.row <= row &&
+            piece.column === column
+          ) {
+            // This piece is the selected piece, or any piece in between the selected piece and the empty space
+            // Move up one
             return {
               ...piece,
               row: piece.row - 1,
             };
           } else if (piece.row === emptyRow && piece.column === emptyCol) {
-            // Update empty position row
+            // Update empty position row. Swap row with the selected piece
             return {
               ...piece,
-              row: piece.row + 1,
+              row,
             };
           }
 
@@ -70,7 +76,7 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
           ...state,
           pieces: newPieces,
           emptyLocation: {
-            row: emptyLocation.row + 1,
+            row,
             column: emptyLocation.column,
           },
         };
@@ -78,21 +84,27 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
       case 'move-down': {
         // Check to see if move is legal
         if (row === rowMax) return state;
-        if (!(row + 1 === emptyRow && column === emptyCol)) return state;
+        if (!(row < emptyRow && column === emptyCol)) return state;
 
         // Legal move
         const newPieces = pieces.map(piece => {
-          if (piece.id === id) {
+          if (
+            piece.row < emptyRow &&
+            piece.column === emptyCol &&
+            piece.row >= row &&
+            piece.column === column
+          ) {
+            // This piece is the selected piece, or any piece in between the selected piece and the empty space
             // Update row
             return {
               ...piece,
               row: piece.row + 1,
             };
           } else if (piece.row === emptyRow && piece.column === emptyCol) {
-            // Update empty position row
+            // Update empty position row. Swap row with the selected piece
             return {
               ...piece,
-              row: piece.row - 1,
+              row,
             };
           }
 
@@ -103,7 +115,7 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
           ...state,
           pieces: newPieces,
           emptyLocation: {
-            row: emptyLocation.row - 1,
+            row,
             column: emptyLocation.column,
           },
         };
@@ -111,21 +123,27 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
       case 'move-left': {
         // Check to see if move is legal
         if (column === colMin) return state;
-        if (!(row === emptyRow && column - 1 === emptyCol)) return state;
+        if (!(row === emptyRow && column > emptyCol)) return state;
 
         // Legal move
         const newPieces = pieces.map(piece => {
-          if (piece.id === id) {
+          if (
+            piece.column > emptyCol &&
+            piece.row === emptyRow &&
+            piece.column <= column &&
+            piece.row === row
+          ) {
+            // This piece is the selected piece, or any piece in between the selected piece and the empty space
             // Update column
             return {
               ...piece,
               column: piece.column - 1,
             };
           } else if (piece.row === emptyRow && piece.column === emptyCol) {
-            // Update empty position column
+            // Update empty position column. Swap column with the selected piece
             return {
               ...piece,
-              column: piece.column + 1,
+              column,
             };
           }
 
@@ -137,18 +155,24 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
           pieces: newPieces,
           emptyLocation: {
             row: emptyLocation.row,
-            column: emptyLocation.column + 1,
+            column,
           },
         };
       }
       case 'move-right': {
         // Check to see if move is legal
         if (column === colMax) return state;
-        if (!(row === emptyRow && column + 1 === emptyCol)) return state;
+        if (!(row === emptyRow && column < emptyCol)) return state;
 
         // Legal move
         const newPieces = pieces.map(piece => {
-          if (piece.id === id) {
+          if (
+            piece.column < emptyCol &&
+            piece.row === emptyRow &&
+            piece.column >= column &&
+            piece.row === row
+          ) {
+            // This piece is the selected piece, or any piece in between the selected piece and the empty space
             // Update column
             return {
               ...piece,
@@ -158,7 +182,7 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
             // Update empty position column
             return {
               ...piece,
-              column: piece.column - 1,
+              column,
             };
           }
           return piece;
@@ -169,7 +193,7 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
           pieces: newPieces,
           emptyLocation: {
             row: emptyLocation.row,
-            column: emptyLocation.column - 1,
+            column,
           },
         };
       }
