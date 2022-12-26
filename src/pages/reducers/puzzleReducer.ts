@@ -2,7 +2,12 @@ import { PuzzleAction, PuzzleState } from '../../types/puzzle';
 import { scramble } from '../../util/puzzleUtils';
 
 export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
-  const { type, id } = action;
+  const { type } = action;
+  let id = -1;
+  if ('id' in action) {
+    id = action.id;
+  }
+
   const { emptyLocation, pieces, rowSize, columnSize } = state;
   // Check for control changes
   if (type === 'reset') {

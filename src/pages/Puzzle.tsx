@@ -1,5 +1,6 @@
 import React, {
   Reducer,
+  useCallback,
   useEffect,
   useMemo,
   useReducer,
@@ -12,6 +13,8 @@ import {
   PuzzleAction,
   PuzzlePiece as PuzzlePieceType,
 } from '../types/puzzle';
+import { solvePiece } from '../util/puzzleUtils';
+import { wait } from '../util/timingUtils';
 import { puzzleReducer } from './reducers/puzzleReducer';
 
 const Puzzle = () => {
@@ -269,6 +272,28 @@ const Puzzle = () => {
     }
   };
 
+  const handleSolve = async () => {
+    async function movesWithDelay(moves: PuzzleAction[], delay: number) {
+      if (moves.length < 1) return Promise.resolve();
+
+      for (let moveIndex = 0; moveIndex < moves.length; moveIndex++) {
+        dispatchMove(moves[moveIndex]);
+        await wait(delay);
+      }
+      return Promise.resolve();
+    }
+    // Solve for row one (except last slot)
+    const { rowSize } = puzzle;
+    let puzzleState: PuzzleState = JSON.parse(JSON.stringify(puzzle));
+    for (let id = 1; id < rowSize; id++) {
+      const results = solvePiece(puzzleState, id);
+      const moves = results[0];
+      puzzleState = results[1];
+      console.log(`MOVES for ${id}: `, moves);
+      await movesWithDelay(moves, 500);
+    }
+  };
+
   return (
     <div className="puzzle-container">
       <div className="puzzle" ref={puzzleRef}>
@@ -344,6 +369,7 @@ const Puzzle = () => {
             <button onClick={() => dispatchMove({ type: 'auto-complete' })}>
               Complete
             </button>
+            <button onClick={handleSolve}>Solve first</button>
             <button
               className="btn--accent"
               onClick={() => dispatchMove({ type: 'reset' })}
