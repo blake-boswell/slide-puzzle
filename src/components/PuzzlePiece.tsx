@@ -39,7 +39,24 @@ const PuzzlePiece = ({
         animationDelay: getDiagonalDelayTime(id, rowSize, columnSize),
       }}
     >
-      {!src && id}
+      {src ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            backgroundColor: 'var(--black)',
+            width: 24,
+            borderRadius: '50%',
+            textAlign: 'center',
+            fontSize: 'var(--text-sm, 14px)',
+          }}
+        >
+          {id}
+        </div>
+      ) : (
+        id
+      )}
     </div>
   );
 };
