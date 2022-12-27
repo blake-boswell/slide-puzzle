@@ -285,12 +285,12 @@ const Puzzle = () => {
     // Solve for row one (except last slot)
     const { rowSize } = puzzle;
     let puzzleState: PuzzleState = JSON.parse(JSON.stringify(puzzle));
-    for (let id = 1; id < rowSize; id++) {
+    for (let id = 1; id <= rowSize; id++) {
       const results = solvePiece(puzzleState, id);
       const moves = results[0];
       puzzleState = results[1];
       console.log(`MOVES for ${id}: `, moves);
-      await movesWithDelay(moves, 500);
+      await movesWithDelay(moves, 200);
     }
   };
 

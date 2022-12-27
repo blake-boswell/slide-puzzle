@@ -134,26 +134,123 @@ export function scramble(rowSize: number, columnSize: number): PuzzleState {
   };
 }
 
-// function solveLastPieceInRow(
-//   puzzle: PuzzleState,
-//   piece: PuzzlePiece,
-//   target: PuzzleSlot,
-// ): [PuzzleAction[], PuzzleState] {
-//   // Solve for final slot in row
-//   // Pre. Make target slot to the left of the original target slot to aim for that rotational path
-//   const offsetTarget: PuzzleSlot = {
-//     row: target.row,
-//     column: target.column - 1,
-//   };
-//   // 1. Walk from empty slot to POI (Piece of interest)
-//   let [actions, shadowPuzzle] = walkEmptyToPiece(puzzle, piece);
-//   // 2. Perform slope walk to get POI into a rotational path w/ offset target
-//   // 3. Walk empty space into the rotational path
-//   // 4. Walk POI to ID - 1 slot
-//   // 5. Rotate rowLen x rowLen ring counter clock-wise
-//   // 6. Walk empty space to the original target slot
-//   // 7. Walk to first in row slot (0, 0 for first row)
-// }
+function solveLastPieceInRow(
+  puzzle: PuzzleState,
+  pieceId: number,
+  target: PuzzleSlot,
+): [PuzzleAction[], PuzzleState] {
+  console.log('Solving for last piece in row');
+  console.log(puzzleToString(puzzle));
+  // Solve for final slot in row
+  const actions: PuzzleAction[] = [];
+  // Pre. Make target slot to the left of the original target slot to aim for that rotational path
+  const offsetTarget: PuzzleSlot = {
+    row: target.row,
+    column: target.column - 1,
+  };
+  const pieceIndex = puzzle.pieces.findIndex(piece => piece.id === pieceId);
+  // 1. Walk from empty slot to POI (Piece of interest)
+  let [newActions, shadowPuzzle] = walkEmptyToPiece(
+    puzzle,
+    puzzle.pieces[pieceIndex],
+  );
+  actions.push(...newActions);
+  // 2. Perform slope walk to get POI into a rotational path w/ offset target
+  [newActions, shadowPuzzle] = slopeWalkToTarget(
+    shadowPuzzle,
+    pieceId,
+    offsetTarget,
+  );
+  actions.push(...newActions);
+  // 3. Rotate solved row CCW 1 space
+  // - Move empty space to (targetRow + 1, 0)
+  if (
+    isRightOfPiece(shadowPuzzle.emptyLocation, shadowPuzzle.pieces[pieceIndex])
+  ) {
+    const moveEmptyDownAction = createMoveEmptyDownAction(shadowPuzzle);
+    shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
+    actions.push(moveEmptyDownAction);
+  }
+
+  // Move left until first column
+  for (let dCol = shadowPuzzle.emptyLocation.column; dCol > 0; dCol--) {
+    const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
+    shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
+    actions.push(moveEmptyLeftAction);
+  }
+
+  if (shadowPuzzle.emptyLocation.row > target.row + 1) {
+    // Move up until at target.row + 1
+    for (
+      let dRow = Math.abs(shadowPuzzle.emptyLocation.row - target.row + 1);
+      dRow > 0;
+      dRow--
+    ) {
+      const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
+      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
+      actions.push(moveEmptyUpAction);
+    }
+  }
+
+  // 4. Walk empty space up and across to the offset target
+  const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
+  shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
+  actions.push(moveEmptyUpAction);
+
+  // - Move right until at offset target
+  for (let dCol = offsetTarget.column; dCol > 0; dCol--) {
+    const moveEmptyRightAction = createMoveEmptyRightAction(shadowPuzzle);
+    shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyRightAction);
+    actions.push(moveEmptyRightAction);
+  }
+
+  // 4. Rotate POI into offset target
+  console.log('Rotating POI into offset target');
+  console.log(puzzleToString(shadowPuzzle));
+  const results = rotate(
+    shadowPuzzle,
+    shadowPuzzle.pieces[pieceIndex],
+    offsetTarget,
+  );
+  newActions = results[0];
+  shadowPuzzle = results[1];
+  actions.push(...newActions);
+
+  // 5. Move empty space to original target slot
+  // | P | E1|
+  // | E2|   |, E1 is already solved
+  if (
+    !isDirectlyRightOfPiece(
+      shadowPuzzle.emptyLocation,
+      shadowPuzzle.pieces[pieceIndex],
+    )
+  ) {
+    // E2
+    const moveEmptyRightAction = createMoveEmptyRightAction(shadowPuzzle);
+    shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyRightAction);
+    actions.push(moveEmptyRightAction);
+
+    const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
+    shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
+    actions.push(moveEmptyUpAction);
+  }
+
+  // 6. Walk to first in row slot (0, 0 for first row)
+  // - Move empty piece to (targetRow + 1, 0)
+  //   - Move left until first column
+  for (let dCol = shadowPuzzle.emptyLocation.column; dCol > 0; dCol--) {
+    const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
+    shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
+    actions.push(moveEmptyLeftAction);
+  }
+
+  //  - Move empty down
+  const moveEmptyDownAction = createMoveEmptyDownAction(shadowPuzzle);
+  shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
+  actions.push(moveEmptyDownAction);
+
+  return [actions, shadowPuzzle];
+}
 
 // function solveLastPieceInColumn(): PuzzleAction[] {
 //   // Solve for final slot in column
@@ -238,6 +335,13 @@ function isDirectlyLeftOfPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
 
 function isDirectlyRightOfPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
   if (slot.column === piece.column + 1 && slot.row === piece.row) {
+    return true;
+  }
+  return false;
+}
+
+function isRightOfPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
+  if (slot.column > piece.column && slot.row === piece.row) {
     return true;
   }
   return false;
@@ -687,11 +791,11 @@ function walkEmptyToPiece(
 function slopeWalkToTarget(
   puzzle: PuzzleState,
   pieceId: number,
-  targetRow: number,
-  targetCol: number,
+  target: PuzzleSlot,
 ): [PuzzleAction[], PuzzleState] {
   const actions: PuzzleAction[] = [];
   let shadowPuzzle: PuzzleState = JSON.parse(JSON.stringify(puzzle));
+  const { row: targetRow, column: targetCol } = target;
 
   const pieceOfInterestIndex = shadowPuzzle.pieces.findIndex(
     piece => piece.id === pieceId,
@@ -1082,8 +1186,8 @@ export function solvePiece(
   if (pieceIndex === -1) return [[], puzzle];
 
   // Get target col, row
-  const targetRow = Math.floor(pieceId / rowSize);
-  const targetCol = (pieceId % rowSize) - 1;
+  const targetRow = Math.floor(pieceId / (rowSize + 1));
+  const targetCol = (pieceId % (rowSize + 1)) - 1;
   if (
     targetRow < 0 ||
     targetCol < 0 ||
@@ -1099,39 +1203,47 @@ export function solvePiece(
     return [[], puzzle];
   }
 
-  const actions: PuzzleAction[] = [];
-  // Solve for slot at col n < colLength - 1 ( not last piece in row )
-  // 1. Walk from empty slot to POI (Piece of interest)
-  let [newActions, shadowPuzzle] = walkEmptyToPiece(
-    puzzle,
-    puzzle.pieces[pieceIndex],
-  );
-  actions.push(...newActions);
-
-  // Right now we are garuanteed to be touching the POI (left, right, above, below)
-
-  // 2. Perform rotations/slope walk to get POI into a square rotational path w/ the target slot in the top left
-  // Loop:
-  [newActions, shadowPuzzle] = slopeWalkToTarget(
-    shadowPuzzle,
-    pieceId,
-    targetRow,
-    targetCol,
-  );
-  actions.push(...newActions);
-
-  // 3. Rotate POI into target slot
-  [newActions, shadowPuzzle] = rotate(
-    shadowPuzzle,
-    shadowPuzzle.pieces[pieceIndex],
-    {
+  if (targetCol === rowSize - 1) {
+    // Last piece in row
+    const [actions, shadowPuzzle] = solveLastPieceInRow(puzzle, pieceId, {
       row: targetRow,
       column: targetCol,
-    },
-  );
-  actions.push(...newActions);
+    });
+    return [actions, shadowPuzzle];
+  } else {
+    // All pieces in row except last
+    const actions: PuzzleAction[] = [];
+    // Solve for slot at col n < colLength - 1 ( not last piece in row )
+    // 1. Walk from empty slot to POI (Piece of interest)
+    let [newActions, shadowPuzzle] = walkEmptyToPiece(
+      puzzle,
+      puzzle.pieces[pieceIndex],
+    );
+    actions.push(...newActions);
 
-  return [actions, shadowPuzzle];
+    // Right now we are garuanteed to be touching the POI (left, right, above, below)
+
+    // 2. Perform rotations/slope walk to get POI into a square rotational path w/ the target slot in the top left
+    // Loop:
+    [newActions, shadowPuzzle] = slopeWalkToTarget(shadowPuzzle, pieceId, {
+      row: targetRow,
+      column: targetCol,
+    });
+    actions.push(...newActions);
+
+    // 3. Rotate POI into target slot
+    [newActions, shadowPuzzle] = rotate(
+      shadowPuzzle,
+      shadowPuzzle.pieces[pieceIndex],
+      {
+        row: targetRow,
+        column: targetCol,
+      },
+    );
+    actions.push(...newActions);
+
+    return [actions, shadowPuzzle];
+  }
 
   // Solve for final slot in row
   // Pre. Make target slot -1, -1 from the original target slot
