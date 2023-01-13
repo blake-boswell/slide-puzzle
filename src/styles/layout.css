@@ -10,6 +10,14 @@
   display: block;
 }
 
+.d-flex {
+  display: flex;
+}
+
+.align-center {
+  align-items: center;
+}
+
 @media (min-width: 576px) {
   .container {
     max-width: 540px;

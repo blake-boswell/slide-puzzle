@@ -142,15 +142,33 @@ function solveLastPieceInRow(
   console.log('Solving for last piece in row');
   console.log(puzzleToString(puzzle));
   // Solve for final slot in row
+  let shadowPuzzle: PuzzleState = JSON.parse(JSON.stringify(puzzle));
   const actions: PuzzleAction[] = [];
+  const pieceIndex = puzzle.pieces.findIndex(piece => piece.id === pieceId);
+
+  if (
+    isDirectlyAbovePiece(target, puzzle.pieces[pieceIndex]) &&
+    puzzle.emptyLocation.row === target.row &&
+    puzzle.emptyLocation.column === target.column
+  ) {
+    // Target slot is empty and immediately above
+    const movePieceUpAction: PuzzleAction = {
+      id: pieceId,
+      type: 'move-up',
+    };
+    actions.push(movePieceUpAction);
+    shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceUpAction);
+    return [actions, shadowPuzzle];
+  }
+
+  let newActions: PuzzleAction[] = [];
   // Pre. Make target slot to the left of the original target slot to aim for that rotational path
   const offsetTarget: PuzzleSlot = {
     row: target.row,
     column: target.column - 1,
   };
-  const pieceIndex = puzzle.pieces.findIndex(piece => piece.id === pieceId);
   // 1. Walk from empty slot to POI (Piece of interest)
-  let [newActions, shadowPuzzle] = walkEmptyToPiece(
+  [newActions, shadowPuzzle] = walkEmptyToPiece(
     puzzle,
     puzzle.pieces[pieceIndex],
   );
@@ -163,7 +181,7 @@ function solveLastPieceInRow(
   );
   actions.push(...newActions);
   // 3. Rotate solved row CCW 1 space
-  const ringSize = shadowPuzzle.rowSize - target.column;
+  const ringSize = target.column + 1 - target.row;
   // - Move empty space to (targetRow + 1, 0)
   if (
     isRightOfPiece(shadowPuzzle.emptyLocation, shadowPuzzle.pieces[pieceIndex])
@@ -188,7 +206,7 @@ function solveLastPieceInRow(
   if (shadowPuzzle.emptyLocation.row > target.row + 1) {
     // Move up until at target.row + 1
     for (
-      let dRow = Math.abs(shadowPuzzle.emptyLocation.row - target.row + 1);
+      let dRow = Math.abs(shadowPuzzle.emptyLocation.row - (target.row + 1));
       dRow > 0;
       dRow--
     ) {
@@ -241,6 +259,8 @@ function solveLastPieceInRow(
     actions.push(moveEmptyUpAction);
   }
 
+  console.log('Rotation complete. Performing ring walk');
+  console.log(puzzleToString(shadowPuzzle));
   // 6. Walk to first in row slot (0, 0 for first row)
   // - Move empty piece to (targetRow + 1, 0)
   //   - Move left until first column in {ringSize} ring
@@ -268,26 +288,37 @@ function solveLastPieceInColumn(
   target: PuzzleSlot,
 ): [PuzzleAction[], PuzzleState] {
   // Solve for final slot in column
-  // Pre. Make target slot -1, -1 from the original target slot
-  // 1. Walk from empty slot to POI (Piece of interest)
-  // 2. Perform rotations to get POI into a rotational path w/ the target slot
-  // 3. Walk empty space into the rotational path
-  // 4. Rotate rowLen x rowLen ring clock-wise
-  // 5. Move POI left (into the ring)
-  // 6. Move empty slot to original target slot + 1 colspace
-  // 7. Full rotation counter clock-wise
   console.log('Solving for last piece in column');
   console.log(puzzleToString(puzzle));
   // Solve for final slot in row
+  let shadowPuzzle: PuzzleState = JSON.parse(JSON.stringify(puzzle));
   const actions: PuzzleAction[] = [];
+  const pieceIndex = puzzle.pieces.findIndex(piece => piece.id === pieceId);
+
+  if (
+    isDirectlyLeftOfPiece(target, puzzle.pieces[pieceIndex]) &&
+    puzzle.emptyLocation.row === target.row &&
+    puzzle.emptyLocation.column === target.column
+  ) {
+    // Target slot is empty and immediately to the left
+    const movePieceLeftAction: PuzzleAction = {
+      id: pieceId,
+      type: 'move-left',
+    };
+    actions.push(movePieceLeftAction);
+    shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceLeftAction);
+    return [actions, shadowPuzzle];
+  }
+
+  let newActions: PuzzleAction[] = [];
+
   // Pre. Make target slot up and to the right of the original target slot to aim for that rotational path
   const offsetTarget: PuzzleSlot = {
     row: target.row - 1,
     column: target.column + 1,
   };
-  const pieceIndex = puzzle.pieces.findIndex(piece => piece.id === pieceId);
   // 1. Walk from empty slot to POI (Piece of interest)
-  let [newActions, shadowPuzzle] = walkEmptyToPiece(
+  [newActions, shadowPuzzle] = walkEmptyToPiece(
     puzzle,
     puzzle.pieces[pieceIndex],
   );
@@ -339,11 +370,14 @@ function solveLastPieceInColumn(
     actions.push(moveEmptyDownAction);
   }
 
+  console.log('[Step 4] Empty slot has been moved into the ring:');
+  console.log(puzzleToString(shadowPuzzle));
+
   // 5. Move in CCW ring until empty space is left of POI
   // - Move down until last column
   for (
     let dCol = Math.abs(
-      shadowPuzzle.rowSize - shadowPuzzle.emptyLocation.column,
+      shadowPuzzle.rowSize - (shadowPuzzle.emptyLocation.column + 1),
     );
     dCol > 0;
     dCol--
@@ -354,30 +388,53 @@ function solveLastPieceInColumn(
   }
 
   // - Move up {ringSize} rows
-  for (let dRow = ringSize; dRow > 0; dRow--) {
+  for (let dRow = ringSize - 1; dRow > 0; dRow--) {
     const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
     shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
     actions.push(moveEmptyUpAction);
   }
 
   // - Move left {ringSize} columns
-  for (let dCol = ringSize; dCol > 0; dCol--) {
+  for (let dCol = ringSize - 1; dCol > 0; dCol--) {
     const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
     shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
     actions.push(moveEmptyLeftAction);
   }
 
   // - Move down until row of POI
-  for (let dRow = shadowPuzzle.pieces[pieceIndex].row; dRow > 0; dRow--) {
+  for (
+    let dRow =
+      shadowPuzzle.pieces[pieceIndex].row - shadowPuzzle.emptyLocation.row;
+    dRow > 0;
+    dRow--
+  ) {
     const moveEmptyDownAction = createMoveEmptyDownAction(shadowPuzzle);
     shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
     actions.push(moveEmptyDownAction);
   }
 
+  if (
+    !isDirectlyLeftOfPiece(
+      shadowPuzzle.emptyLocation,
+      shadowPuzzle.pieces[pieceIndex],
+    )
+  ) {
+    console.error(
+      'The empty piece should be to the left of the piece of interest, but it is not.',
+    );
+    console.error(puzzleToString(shadowPuzzle));
+  }
+
+  console.log('[Step 5] Opened slot for the piece of interest:');
+  console.log(puzzleToString(shadowPuzzle));
+
   // 6. Move POI left
   const movePieceLeftAction: PuzzleAction = { id: pieceId, type: 'move-left' };
   shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceLeftAction);
   actions.push(movePieceLeftAction);
+
+  console.log('[Step 6] inserted piece of interest:');
+  console.log(puzzleToString(shadowPuzzle));
 
   // 7. CW rotation of ring
   // - Move empty down
@@ -390,7 +447,7 @@ function solveLastPieceInColumn(
   actions.push(moveEmptyLeftAction);
 
   // - Move up {ringSize} rows
-  for (let dRow = ringSize; dRow > 0; dRow--) {
+  for (let dRow = ringSize - 1; dRow > 0; dRow--) {
     const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
     shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
     actions.push(moveEmptyUpAction);
@@ -398,7 +455,7 @@ function solveLastPieceInColumn(
 
   // - Move right to last column
   for (
-    let dCol = shadowPuzzle.rowSize - shadowPuzzle.emptyLocation.column;
+    let dCol = shadowPuzzle.rowSize - (shadowPuzzle.emptyLocation.column + 1);
     dCol > 0;
     dCol--
   ) {
@@ -412,10 +469,13 @@ function solveLastPieceInColumn(
   shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
   actions.push(moveEmptyDownAction);
 
+  console.log('Completed solution for last in column for piece ', pieceId);
+  console.log(puzzleToString(shadowPuzzle));
+
   return [actions, shadowPuzzle];
 }
 
-function isInSquareRing(
+export function isInSquareRing(
   puzzle: PuzzleState,
   piece: PuzzlePiece,
   targetRow: number,
@@ -430,8 +490,13 @@ function isInSquareRing(
     targetCol < 0 ||
     targetCol >= columnSize
   ) {
-    // Return -1 to indicate it is not in the ring path
+    // Out of bounds
     return false;
+  }
+
+  if (targetRow === piece.row && targetCol === piece.column) {
+    // Piece is in the target slot
+    return true;
   }
 
   // Check 2x2 ring
@@ -439,79 +504,116 @@ function isInSquareRing(
   const validRowEnd = targetRow + 1;
   const validColStart = targetCol;
   const validColEnd = targetCol + 1;
-  if (validRowEnd < rowSize && validColEnd < columnSize) {
-    if (
-      ((piece.column === validColStart || piece.column === validColEnd) &&
-        (validRowStart <= piece.row && piece.row <= validRowEnd)) ||
-      ((piece.row === validRowStart || piece.row === validRowEnd) &&
-        (validColStart <= piece.column && piece.column <= validColEnd))
-    ) {
-      // Piece is in the square rotational ring path. Return ring size
-      return true;
-    }
+  if (
+    ((piece.column === validColStart || piece.column === validColEnd) &&
+      (validRowStart <= piece.row && piece.row <= validRowEnd)) ||
+    ((piece.row === validRowStart || piece.row === validRowEnd) &&
+      (validColStart <= piece.column && piece.column <= validColEnd))
+  ) {
+    // Piece is in the square rotational ring path
+    return true;
   }
 
-  // Return -1 to indicate it is not in the ring path
   return false;
 }
 
-function getDeltaRow(piece: PuzzlePiece, targetRow: number) {
+export function getRowIds(rowNumber: number, rowSize: number): number[] {
+  const rowIds = [];
+  const startId = rowNumber * rowSize + 1;
+  const endId = (rowNumber + 1) * rowSize;
+  for (let id = startId; id <= endId; id++) {
+    rowIds.push(id);
+  }
+  return rowIds;
+}
+
+export function getColumnIds(
+  columnNumber: number,
+  columnSize: number,
+  rowSize: number = columnSize,
+): number[] {
+  const columnIds = [];
+  let row = 0;
+  while (row < columnSize) {
+    const id = columnNumber + 1 + row * rowSize;
+    columnIds.push(id);
+    row++;
+  }
+
+  return columnIds;
+}
+
+export function getDeltaRow(
+  puzzle: PuzzleState,
+  pieceId: number,
+  targetRow: number,
+) {
+  const piece = puzzle.pieces.find(puzzlePiece => puzzlePiece.id === pieceId);
+  if (!piece) return 0;
+
   return targetRow - piece.row;
 }
 
-function getDeltaColumn(piece: PuzzlePiece, targetColumn: number) {
+export function getDeltaColumn(
+  puzzle: PuzzleState,
+  pieceId: number,
+  targetColumn: number,
+) {
+  const piece = puzzle.pieces.find(puzzlePiece => puzzlePiece.id === pieceId);
+  if (!piece) return 0;
+
   return targetColumn - piece.column;
 }
 
-function isDirectlyAbovePiece(slot: PuzzleSlot, piece: PuzzlePiece) {
+export function isDirectlyAbovePiece(slot: PuzzleSlot, piece: PuzzlePiece) {
   if (slot.row + 1 === piece.row && slot.column === piece.column) {
     return true;
   }
   return false;
 }
 
-function isDirectlyBelowPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
+export function isDirectlyBelowPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
   if (slot.row === piece.row + 1 && slot.column === piece.column) {
     return true;
   }
   return false;
 }
 
-function isDirectlyLeftOfPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
+export function isDirectlyLeftOfPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
   if (slot.column + 1 === piece.column && slot.row === piece.row) {
     return true;
   }
   return false;
 }
 
-function isDirectlyRightOfPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
+export function isDirectlyRightOfPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
   if (slot.column === piece.column + 1 && slot.row === piece.row) {
     return true;
   }
   return false;
 }
 
-function isRightOfPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
+export function isRightOfPiece(slot: PuzzleSlot, piece: PuzzlePiece) {
   if (slot.column > piece.column && slot.row === piece.row) {
     return true;
   }
   return false;
 }
 
-function getPieceAt(puzzle: PuzzleState, row: number, column: number) {
+export function getPieceAt(puzzle: PuzzleState, row: number, column: number) {
   const piece = puzzle.pieces.find(
     puzzlePiece => puzzlePiece.row === row && puzzlePiece.column === column,
   );
   return piece;
 }
 
-function getPieceIdAt(puzzle: PuzzleState, row: number, column: number) {
+export function getPieceIdAt(puzzle: PuzzleState, row: number, column: number) {
   const piece = getPieceAt(puzzle, row, column);
   if (piece) return piece.id;
   return -1;
 }
 
-function createMoveEmptyUpAction(puzzle: PuzzleState): PuzzleAction {
+export function createMoveEmptyUpAction(puzzle: PuzzleState): PuzzleAction {
   return {
     id: getPieceIdAt(
       puzzle,
@@ -522,7 +624,7 @@ function createMoveEmptyUpAction(puzzle: PuzzleState): PuzzleAction {
   };
 }
 
-function createMoveEmptyDownAction(puzzle: PuzzleState): PuzzleAction {
+export function createMoveEmptyDownAction(puzzle: PuzzleState): PuzzleAction {
   return {
     id: getPieceIdAt(
       puzzle,
@@ -533,7 +635,7 @@ function createMoveEmptyDownAction(puzzle: PuzzleState): PuzzleAction {
   };
 }
 
-function createMoveEmptyRightAction(puzzle: PuzzleState): PuzzleAction {
+export function createMoveEmptyRightAction(puzzle: PuzzleState): PuzzleAction {
   return {
     id: getPieceIdAt(
       puzzle,
@@ -544,7 +646,7 @@ function createMoveEmptyRightAction(puzzle: PuzzleState): PuzzleAction {
   };
 }
 
-function createMoveEmptyLeftAction(puzzle: PuzzleState): PuzzleAction {
+export function createMoveEmptyLeftAction(puzzle: PuzzleState): PuzzleAction {
   return {
     id: getPieceIdAt(
       puzzle,
@@ -555,17 +657,20 @@ function createMoveEmptyLeftAction(puzzle: PuzzleState): PuzzleAction {
   };
 }
 
-function rotate(
+export function rotate(
   puzzle: PuzzleState,
   piece: PuzzlePiece,
   target: PuzzleSlot,
 ): [PuzzleAction[], PuzzleState] {
+  console.log('Starting rotation of ', piece, ' to: ', target);
+  console.log(puzzleToString(puzzle));
   let actions: PuzzleAction[] = [];
   let shadowPuzzle: PuzzleState = JSON.parse(JSON.stringify(puzzle));
   if (isDirectlyLeftOfPiece(target, piece)) {
     // Target is directly left of piece
-    // | T | P | E1|
-    // | x | E2|   | , where E1 and E2 are possible empty slots to get P where it is
+    // | x | E1| E2
+    // | T | P | E3|
+    // | x | E5| E4| , where E1 and E2 are possible empty slots to get P where it is
     if (
       target.row === shadowPuzzle.emptyLocation.row &&
       target.column === shadowPuzzle.emptyLocation.column
@@ -577,56 +682,73 @@ function rotate(
       };
       shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceLeftAction);
       actions.push(movePieceLeftAction);
-    } else if (isDirectlyRightOfPiece(shadowPuzzle.emptyLocation, piece)) {
-      // E1
-      const moveEmptyDownAction = createMoveEmptyDownAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
-      actions.push(moveEmptyDownAction);
-
-      const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
-      actions.push(moveEmptyLeftAction);
-
-      const moveEmptyLeftAgainAction = createMoveEmptyLeftAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAgainAction);
-      actions.push(moveEmptyLeftAgainAction);
-
-      const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
-      actions.push(moveEmptyUpAction);
-
-      const movePieceLeftAction: PuzzleAction = {
-        id: piece.id,
-        type: 'move-left',
-      };
-      shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceLeftAction);
-      actions.push(movePieceLeftAction);
-    } else if (isDirectlyBelowPiece(shadowPuzzle.emptyLocation, piece)) {
-      // E2
-      const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
-      actions.push(moveEmptyLeftAction);
-
-      const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
-      actions.push(moveEmptyUpAction);
-
-      const movePieceLeftAction: PuzzleAction = {
-        id: piece.id,
-        type: 'move-left',
-      };
-      shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceLeftAction);
-      actions.push(movePieceLeftAction);
     } else {
-      // Error. I should not go here
-      console.error('Cannot rotate piece to target ', target);
-      logPuzzle(shadowPuzzle);
+      const numActionsBefore = actions.length;
+
+      if (isDirectlyAbovePiece(shadowPuzzle.emptyLocation, piece)) {
+        // E1
+        const moveEmptyRightAction = createMoveEmptyRightAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyRightAction);
+        actions.push(moveEmptyRightAction);
+      }
+
+      if (
+        shadowPuzzle.emptyLocation.column === piece.column + 1 &&
+        shadowPuzzle.emptyLocation.row === piece.row - 1
+      ) {
+        // E2
+        const moveEmptyDownAction = createMoveEmptyDownAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
+        actions.push(moveEmptyDownAction);
+      }
+
+      if (isDirectlyRightOfPiece(shadowPuzzle.emptyLocation, piece)) {
+        // E3
+        const moveEmptyDownAction = createMoveEmptyDownAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
+        actions.push(moveEmptyDownAction);
+      }
+
+      if (
+        shadowPuzzle.emptyLocation.column === piece.column + 1 &&
+        shadowPuzzle.emptyLocation.row === piece.row + 1
+      ) {
+        // E4
+        const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
+        actions.push(moveEmptyLeftAction);
+      }
+
+      if (isDirectlyBelowPiece(shadowPuzzle.emptyLocation, piece)) {
+        // E5
+        const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
+        actions.push(moveEmptyLeftAction);
+
+        const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
+        actions.push(moveEmptyUpAction);
+
+        const movePieceLeftAction: PuzzleAction = {
+          id: piece.id,
+          type: 'move-left',
+        };
+        shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceLeftAction);
+        actions.push(movePieceLeftAction);
+      }
+
+      if (numActionsBefore === actions.length) {
+        // We haven't done any new actions. We are in an unexpected state
+        // Error. I should not go here
+        console.error('Cannot rotate piece to target ', target);
+        logPuzzle(shadowPuzzle);
+      }
     }
   } else if (isDirectlyAbovePiece(target, piece)) {
     // Target is directly above piece
-    // |   | T | x |
-    // | E3| P | E1|
-    // |   | E2|   | , where E1 and E2 are possible empty slots to get P where it is
+    // | E7| T | E1|
+    // | E6| P | E2|
+    // | E5| E4| E3| , where E1 and E2 are possible empty slots to get P where it is
     if (
       target.row === shadowPuzzle.emptyLocation.row &&
       target.column === shadowPuzzle.emptyLocation.column
@@ -635,75 +757,82 @@ function rotate(
       const movePieceUpAction: PuzzleAction = { id: piece.id, type: 'move-up' };
       shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceUpAction);
       actions.push(movePieceUpAction);
-    } else if (isDirectlyRightOfPiece(shadowPuzzle.emptyLocation, piece)) {
-      // E1
-      const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
-      actions.push(moveEmptyUpAction);
-
-      const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
-      actions.push(moveEmptyLeftAction);
-
-      const movePieceUpAction: PuzzleAction = { id: piece.id, type: 'move-up' };
-      shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceUpAction);
-      actions.push(movePieceUpAction);
-    } else if (isDirectlyBelowPiece(shadowPuzzle.emptyLocation, piece)) {
-      // E2
-      const moveEmptyRightAction = createMoveEmptyRightAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyRightAction);
-      actions.push(moveEmptyRightAction);
-
-      const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
-      actions.push(moveEmptyUpAction);
-
-      const moveEmptyUpAgainAction = createMoveEmptyUpAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAgainAction);
-      actions.push(moveEmptyUpAgainAction);
-
-      const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
-      actions.push(moveEmptyLeftAction);
-
-      const movePieceUpAction: PuzzleAction = { id: piece.id, type: 'move-up' };
-      shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceUpAction);
-      actions.push(movePieceUpAction);
-    } else if (isDirectlyLeftOfPiece(shadowPuzzle.emptyLocation, piece)) {
-      // E3
-      const moveEmptyDownAction = createMoveEmptyDownAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
-      actions.push(moveEmptyDownAction);
-
-      const moveEmptyRightAction = createMoveEmptyRightAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyRightAction);
-      actions.push(moveEmptyRightAction);
-
-      const moveEmptyRightAgainAction = createMoveEmptyRightAction(
-        shadowPuzzle,
-      );
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyRightAgainAction);
-      actions.push(moveEmptyRightAgainAction);
-
-      const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
-      actions.push(moveEmptyUpAction);
-
-      const moveEmptyUpAgainAction = createMoveEmptyUpAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAgainAction);
-      actions.push(moveEmptyUpAgainAction);
-
-      const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
-      shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
-      actions.push(moveEmptyLeftAction);
-
-      const movePieceUpAction: PuzzleAction = { id: piece.id, type: 'move-up' };
-      shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceUpAction);
-      actions.push(movePieceUpAction);
     } else {
-      // Error. I should not go here
-      console.error('Cannot rotate piece to target ', target);
-      logPuzzle(shadowPuzzle);
+      const numActionsBefore = actions.length;
+
+      if (
+        shadowPuzzle.emptyLocation.column === piece.column - 1 &&
+        shadowPuzzle.emptyLocation.row === piece.row - 1
+      ) {
+        // E7
+        const moveEmptyDownAction = createMoveEmptyDownAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
+        actions.push(moveEmptyDownAction);
+      }
+
+      if (isDirectlyLeftOfPiece(shadowPuzzle.emptyLocation, piece)) {
+        // E6
+        const moveEmptyDownAction = createMoveEmptyDownAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyDownAction);
+        actions.push(moveEmptyDownAction);
+      }
+
+      if (
+        shadowPuzzle.emptyLocation.column === piece.column - 1 &&
+        shadowPuzzle.emptyLocation.row === piece.row + 1
+      ) {
+        // E5
+        const moveEmptyRightAction = createMoveEmptyRightAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyRightAction);
+        actions.push(moveEmptyRightAction);
+      }
+
+      if (isDirectlyBelowPiece(shadowPuzzle.emptyLocation, piece)) {
+        // E4
+        const moveEmptyRightAction = createMoveEmptyRightAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyRightAction);
+        actions.push(moveEmptyRightAction);
+      }
+
+      if (
+        shadowPuzzle.emptyLocation.column === piece.column + 1 &&
+        shadowPuzzle.emptyLocation.row === piece.row + 1
+      ) {
+        // E3
+        const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
+        actions.push(moveEmptyUpAction);
+      }
+
+      if (isDirectlyRightOfPiece(shadowPuzzle.emptyLocation, piece)) {
+        // E2
+        const moveEmptyUpAction = createMoveEmptyUpAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyUpAction);
+        actions.push(moveEmptyUpAction);
+      }
+
+      if (
+        shadowPuzzle.emptyLocation.column === piece.column + 1 &&
+        shadowPuzzle.emptyLocation.row === piece.row - 1
+      ) {
+        // E1
+        const moveEmptyLeftAction = createMoveEmptyLeftAction(shadowPuzzle);
+        shadowPuzzle = puzzleReducer(shadowPuzzle, moveEmptyLeftAction);
+        actions.push(moveEmptyLeftAction);
+
+        const movePieceUpAction: PuzzleAction = {
+          id: piece.id,
+          type: 'move-up',
+        };
+        shadowPuzzle = puzzleReducer(shadowPuzzle, movePieceUpAction);
+        actions.push(movePieceUpAction);
+      }
+
+      if (numActionsBefore === actions.length) {
+        // Error. I should not go here
+        console.error('Cannot rotate piece to target ', target);
+        logPuzzle(shadowPuzzle);
+      }
     }
   } else if (
     piece.row === target.row + 1 &&
@@ -839,6 +968,8 @@ function rotate(
     }
   }
 
+  console.log('Completed rotation of ', piece.id, ' to: ', target);
+  console.log(puzzleToString(shadowPuzzle));
   return [actions, shadowPuzzle];
 }
 
@@ -846,9 +977,12 @@ function walkEmptyToPiece(
   puzzle: PuzzleState,
   piece: PuzzlePiece,
 ): [PuzzleAction[], PuzzleState] {
+  console.log('Starting to walk the empty slot to target: ', piece);
+  console.log(puzzleToString(puzzle));
+
   // Locate empty slot
   const { row: emptyRow, column: emptyCol } = puzzle.emptyLocation;
-  const { row: initialRow, column: initialColumn, id: pieceId } = piece;
+  const { row: targetRow, column: targetColumn, id: pieceId } = piece;
 
   // Solve for row
   const actions: PuzzleAction[] = [];
@@ -856,8 +990,8 @@ function walkEmptyToPiece(
 
   // Find delta row and delta col
   // (-) row points up, (-) col points left
-  const dRow = emptyRow - initialRow;
-  const dCol = emptyCol - initialColumn;
+  const dRow = emptyRow - targetRow;
+  const dCol = emptyCol - targetColumn;
   // Check if we can skip this step
   if (dRow !== 0 || dCol !== 0) {
     let touchingTargetPiece = false;
@@ -868,8 +1002,8 @@ function walkEmptyToPiece(
       remainingRowMoves > 0 && !touchingTargetPiece;
       remainingRowMoves--
     ) {
-      if (remainingRowMoves === 1 && direction === 'move-up') {
-        // Prevent upwards movement if on the row below the target
+      if (remainingRowMoves === 1 && direction === 'move-down') {
+        // Prevent upwards movement of the empty space if it is on the row below the target
         // This is done to ensure we don't mess with any slots already solved
         break;
       }
@@ -936,6 +1070,8 @@ function walkEmptyToPiece(
     }
   }
 
+  console.log('Completed walking the empty slot to target: ', piece);
+  console.log(puzzleToString(shadowPuzzle));
   return [actions, shadowPuzzle];
 }
 
@@ -944,6 +1080,8 @@ function slopeWalkToTarget(
   pieceId: number,
   target: PuzzleSlot,
 ): [PuzzleAction[], PuzzleState] {
+  console.log('Starting slope walk for ', pieceId, ' to target: ', target);
+  console.log(puzzleToString(puzzle));
   const actions: PuzzleAction[] = [];
   let shadowPuzzle: PuzzleState = JSON.parse(JSON.stringify(puzzle));
   const { row: targetRow, column: targetCol } = target;
@@ -959,8 +1097,8 @@ function slopeWalkToTarget(
     while (!isPieceSolved && iterationCount < 25) {
       iterationCount++;
       const pieceOfInterest = shadowPuzzle.pieces[pieceOfInterestIndex];
-      const dRow = getDeltaRow(pieceOfInterest, targetRow);
-      const dCol = getDeltaColumn(pieceOfInterest, targetCol);
+      const dRow = getDeltaRow(shadowPuzzle, pieceId, targetRow);
+      const dCol = getDeltaColumn(shadowPuzzle, pieceId, targetCol);
       // - Perform a Slope Walk
       // 1. Check if POI is in a square rotational path with target slot being top left
       const inSquareRing = isInSquareRing(
@@ -1324,6 +1462,8 @@ function slopeWalkToTarget(
     }
   }
 
+  console.log('Completed slope walk for ', pieceId, ' to target: ', target);
+  console.log(puzzleToString(shadowPuzzle));
   return [actions, shadowPuzzle];
 }
 
@@ -1387,32 +1527,33 @@ export function solvePiece(
     // Solve for slot at col n < colLength - 1 ( not last piece in row )
     // 1. Walk from empty slot to POI (Piece of interest)
     console.log(`Walking from empty slot to ${pieceId}`);
-    console.log(`[${pieceId}] Before: `, puzzleToString(puzzle));
+    console.log(`[${pieceId}] Before:\n`, puzzleToString(puzzle));
     let [newActions, shadowPuzzle] = walkEmptyToPiece(
       puzzle,
       puzzle.pieces[pieceIndex],
     );
     actions.push(...newActions);
-    console.log(`[${pieceId}] After: `, puzzleToString(shadowPuzzle));
+    console.log(`[${pieceId}] After:\n`, puzzleToString(shadowPuzzle));
 
     // Right now we are garuanteed to be touching the POI (left, right, above, below)
 
     // 2. Perform rotations/slope walk to get POI into a square rotational path w/ the target slot in the top left
     // Loop:
-    console.log(`Slope walk to ${{ row: targetRow, column: targetCol }}`);
-    console.log(`[${pieceId}] Before: `, puzzleToString(shadowPuzzle));
+    console.log('Slope walk to: ', { row: targetRow, column: targetCol });
+    console.log(`[${pieceId}] Before:\n`, puzzleToString(shadowPuzzle));
     [newActions, shadowPuzzle] = slopeWalkToTarget(shadowPuzzle, pieceId, {
       row: targetRow,
       column: targetCol,
     });
     actions.push(...newActions);
-    console.log(`[${pieceId}] After: `, puzzleToString(shadowPuzzle));
+    console.log(`[${pieceId}] After:\n`, puzzleToString(shadowPuzzle));
 
     // 3. Rotate POI into target slot
-    console.log(
-      `Rotating ${pieceId} into slot ${{ row: targetRow, column: targetCol }}`,
-    );
-    console.log(`[${pieceId}] Before: `, puzzleToString(shadowPuzzle));
+    console.log('Rotating ${pieceId} into slot: ', {
+      row: targetRow,
+      column: targetCol,
+    });
+    console.log(`[${pieceId}] Before:\n`, puzzleToString(shadowPuzzle));
     [newActions, shadowPuzzle] = rotate(
       shadowPuzzle,
       shadowPuzzle.pieces[pieceIndex],
@@ -1422,7 +1563,7 @@ export function solvePiece(
       },
     );
     actions.push(...newActions);
-    console.log(`[${pieceId}] After: `, puzzleToString(shadowPuzzle));
+    console.log(`[${pieceId}] After:\n`, puzzleToString(shadowPuzzle));
 
     return [actions, shadowPuzzle];
   }
@@ -1460,17 +1601,12 @@ function solveRow(
   let newActions: PuzzleAction[] = [];
   const actions: PuzzleAction[] = [];
 
-  // Iterate from slot along the diagonal to end of row
-  // |a1|a2|a3|
-  // |  |b1|b2|
-  // |  |  |c1|, where a corresponds to row 0, b to row 1, c to row 2. Diagonal of a1, b1, c1.
-  const { columnSize } = puzzle;
-  const end = rowNumber * columnSize + columnSize;
-  for (let i = 1; i <= end; i++) {
-    const id = rowNumber * columnSize + i + rowNumber;
+  const rowIds = getRowIds(rowNumber, puzzle.rowSize);
+  rowIds.forEach(id => {
+    console.log('[Row] Solving piece: ', id);
     [newActions, shadowPuzzle] = solvePiece(shadowPuzzle, id);
     actions.push(...newActions);
-  }
+  });
 
   return [actions, shadowPuzzle];
 }
@@ -1483,18 +1619,72 @@ function solveColumn(
   let newActions: PuzzleAction[] = [];
   const actions: PuzzleAction[] = [];
 
-  // Iterate from slot below the diagonal to end of column
-  // |  |  |  |
-  // |a1|  |  |
-  // |a2|b1|  |, where a corresponds to col 0, b to col 1.
-  const { rowSize } = puzzle;
-  for (let i = 1; i <= rowSize - colNumber; i++) {
-    const id = rowSize * (i + colNumber) + colNumber + 1;
+  const columnIds = getColumnIds(colNumber, puzzle.columnSize);
+  columnIds.forEach(id => {
+    console.log('[Column] Solving piece: ', id);
     [newActions, shadowPuzzle] = solvePiece(shadowPuzzle, id);
+    actions.push(...newActions);
+  });
+
+  return [actions, shadowPuzzle];
+}
+
+export function solvePuzzleUpToId(
+  puzzle: PuzzleState,
+  id: number,
+): PuzzleAction[] {
+  let shadowPuzzle: PuzzleState = JSON.parse(JSON.stringify(puzzle));
+  let newActions: PuzzleAction[] = [];
+  const actions: PuzzleAction[] = [];
+  const rowOfPiece = Math.floor((id - 1) / puzzle.columnSize);
+  const colOfPiece = (id - 1) % puzzle.rowSize;
+  console.log(`${id} belongs at { row: ${rowOfPiece}, col: ${colOfPiece} }`);
+  for (let i = 0; i < Math.min(rowOfPiece, colOfPiece); i++) {
+    if (i !== rowOfPiece) {
+      [newActions, shadowPuzzle] = solveRow(shadowPuzzle, i);
+      actions.push(...newActions);
+    }
+    if (i !== colOfPiece) {
+      [newActions, shadowPuzzle] = solveColumn(shadowPuzzle, i);
+      actions.push(...newActions);
+    }
+  }
+
+  console.log('Starting piece by piece steps');
+
+  // Piece by piece steps to get to piece with given ID
+
+  let checkColumns = true;
+  const rowIds = getRowIds(Math.min(rowOfPiece, colOfPiece), puzzle.rowSize);
+  console.log('Ids in row: ', rowIds);
+  for (const rowId of rowIds) {
+    if (rowId === id) {
+      console.log('Breaking out, on piece we want...');
+      checkColumns = false;
+      break;
+    }
+    console.log('[Row] Solving piece: ', rowId);
+    [newActions, shadowPuzzle] = solvePiece(shadowPuzzle, rowId);
     actions.push(...newActions);
   }
 
-  return [actions, shadowPuzzle];
+  if (checkColumns) {
+    const columnIds = getColumnIds(
+      Math.min(rowOfPiece, colOfPiece),
+      puzzle.columnSize,
+    );
+    for (const columnId of columnIds) {
+      if (columnId === id) {
+        break;
+      }
+
+      console.log('[Column] Solving piece: ', columnId);
+      [newActions, shadowPuzzle] = solvePiece(shadowPuzzle, columnId);
+      actions.push(...newActions);
+    }
+  }
+
+  return actions;
 }
 
 export function solvePuzzle(puzzle: PuzzleState): PuzzleAction[] {

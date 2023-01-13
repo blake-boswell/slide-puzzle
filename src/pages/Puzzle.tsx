@@ -13,7 +13,11 @@ import {
   PuzzleAction,
   PuzzlePiece as PuzzlePieceType,
 } from '../types/puzzle';
-import { solvePiece, solvePuzzle } from '../util/puzzleUtils';
+import {
+  solvePiece,
+  solvePuzzle,
+  solvePuzzleUpToId,
+} from '../util/puzzleUtils';
 import { wait } from '../util/timingUtils';
 import { puzzleReducer } from './reducers/puzzleReducer';
 
@@ -46,6 +50,7 @@ const Puzzle = () => {
   const [imageSource, setImageSource] = useState('');
   const [imageHeight, setImageHeight] = useState(0);
   const [imageWidth, setImageWidth] = useState(0);
+  const [solveToId, setSolveToId] = useState<number | ''>('');
   const puzzleRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDialogElement>(null);
 
@@ -303,8 +308,13 @@ const Puzzle = () => {
     //   await movesWithDelay(moves, 200);
     // }
 
-    const moves = solvePuzzle(puzzle);
-    movesWithDelay(moves, 200);
+    if (solveToId) {
+      const moves = solvePuzzleUpToId(puzzle, solveToId);
+      movesWithDelay(moves, 200);
+    } else {
+      const moves = solvePuzzle(puzzle);
+      movesWithDelay(moves, 200);
+    }
   };
 
   return (
@@ -379,10 +389,19 @@ const Puzzle = () => {
         </div>
         <div className="puzzle__footer">
           <div className="action-buttons">
+            <div className="d-flex align-center">
+              <label htmlFor="up-to-id">Solve up to ID:</label>
+              <input
+                id="up-to-id"
+                type="number"
+                value={solveToId}
+                onChange={e => setSolveToId(e.target.valueAsNumber || null)}
+              />
+            </div>
+            <button onClick={handleSolve}>Solve</button>
             <button onClick={() => dispatchMove({ type: 'auto-complete' })}>
               Complete
             </button>
-            <button onClick={handleSolve}>Solve first</button>
             <button
               className="btn--accent"
               onClick={() => dispatchMove({ type: 'reset' })}
