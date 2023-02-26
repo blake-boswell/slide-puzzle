@@ -1,6 +1,5 @@
 import React, {
   Reducer,
-  useCallback,
   useEffect,
   useMemo,
   useReducer,
@@ -14,7 +13,7 @@ import {
   PuzzlePiece as PuzzlePieceType,
 } from '../types/puzzle';
 import {
-  solvePiece,
+  isPuzzleSolved,
   solvePuzzle,
   solvePuzzleUpToId,
 } from '../util/puzzleUtils';
@@ -58,22 +57,7 @@ const Puzzle = () => {
     dispatchMove({ type: 'resize', size: { rowSize, colSize } });
   }, [rowSize, colSize]);
 
-  const isPuzzleComplete = useMemo(() => {
-    for (let i = 0; i < puzzle.pieces.length - 1; i++) {
-      const thisPiece = puzzle.pieces[i];
-      const nextPiece = puzzle.pieces[i + 1];
-      if (thisPiece.row > nextPiece.row) {
-        return false;
-      } else if (
-        thisPiece.row === nextPiece.row &&
-        thisPiece.column > nextPiece.column
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  }, [puzzle.pieces]);
+  const isPuzzleComplete = useMemo(() => isPuzzleSolved(puzzle), [puzzle]);
 
   useEffect(() => {
     if (focusedPiece > -1) {
@@ -287,26 +271,6 @@ const Puzzle = () => {
       }
       return Promise.resolve();
     }
-    // Solve for row one (except last slot)
-    // const { rowSize } = puzzle;
-    // let puzzleState: PuzzleState = JSON.parse(JSON.stringify(puzzle));
-    // // Solve row 0
-    // for (let id = 1; id <= rowSize; id++) {
-    //   const results = solvePiece(puzzleState, id);
-    //   const moves = results[0];
-    //   puzzleState = results[1];
-    //   console.log(`MOVES for ${id}: `, moves);
-    //   await movesWithDelay(moves, 200);
-    // }
-
-    // // Solve column 0
-    // for (let id = rowSize + 1; id <= rowSize * rowSize; id += rowSize) {
-    //   const results = solvePiece(puzzleState, id);
-    //   const moves = results[0];
-    //   puzzleState = results[1];
-    //   console.log(`MOVES for ${id}: `, moves);
-    //   await movesWithDelay(moves, 200);
-    // }
 
     if (solveToId) {
       const moves = solvePuzzleUpToId(puzzle, solveToId);

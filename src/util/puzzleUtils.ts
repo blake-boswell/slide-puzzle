@@ -1,4 +1,5 @@
 import { puzzleReducer } from '../pages/reducers/puzzleReducer';
+import { MoveAction } from '../types/puzzle';
 import {
   Direction,
   PuzzleAction,
@@ -7,8 +8,9 @@ import {
   PuzzleState,
 } from '../types/puzzle';
 import { shuffle } from './arrayUtils';
+import { aStarSolve } from './aStar';
 
-function getInversionCount(puzzle: number[], emptyPieceId: number) {
+export function getInversionCount(puzzle: number[], emptyPieceId: number) {
   // An inversion is when a tile comes before another tile with a lower number
   // EX: [3, 4, 1, 2] : 4 has the inversion of 1 and 2; 3 has the inversions 1 and 2
   let inversionCount = 0;
@@ -26,17 +28,18 @@ function getInversionCount(puzzle: number[], emptyPieceId: number) {
   return inversionCount;
 }
 
-function getRowNumberFromBottom(
+export function getRowNumberFromBottom(
   columnSize: number,
   emptyPieceLocation: number,
 ) {
-  const row = emptyPieceLocation / columnSize;
+  const row = Math.floor(emptyPieceLocation / columnSize);
   return columnSize - row;
 }
 
-function isValidPuzzle(puzzle: number[], emptyPieceId: number) {
+export function isValidPuzzle(puzzle: number[], emptyPieceId: number) {
   // Check for inversion count
   const inversionCount = getInversionCount(puzzle, emptyPieceId);
+  console.log('Inversion count: ', inversionCount);
 
   const size = Math.sqrt(puzzle.length);
 
@@ -44,20 +47,18 @@ function isValidPuzzle(puzzle: number[], emptyPieceId: number) {
     // Puzzle grid is odd: True if inversion count is even
     return inversionCount % 2 === 0;
   }
+  // Puzzle grid is even
 
   const emptyPieceIndex = puzzle.indexOf(emptyPieceId);
   const emptyPieceRowNumber = getRowNumberFromBottom(size, emptyPieceIndex);
-  if (size % 2 === 0 && emptyPieceRowNumber % 2 !== 0) {
-    // Puzzle grid is even && empty piece is in an odd row (counting from bottom):
+  console.log('Empty piece row num: ', emptyPieceRowNumber);
+  if (emptyPieceRowNumber % 2 !== 0) {
+    // Empty piece is in an odd row (counting from bottom):
     // True if inversion count is even
     return inversionCount % 2 === 0;
-  }
-
-  if (emptyPieceRowNumber % 2 !== 0) {
-    // Puzzle grid is even && empty piece is in an even row (counting from bottom):
-    // True if inversion count is odd
-    return inversionCount % 2 === 0;
   } else {
+    // Empty piece is in an even row (counting from bottom):
+    // True if inversion count is odd
     return inversionCount % 2 !== 0;
   }
 }
@@ -95,7 +96,9 @@ export function scramble(rowSize: number, columnSize: number): PuzzleState {
 
   if (!isSolvable) {
     // If it's not solvable, then we need to change the count of inversions by 1
+    console.log('Generated an unsolvable puzzle. Swapping pieces to fix this...');
     swapPieces(shuffledPuzzle, arraySize);
+    console.log('Pieces swapped! Solvable: ', isValidPuzzle(shuffledPuzzle, arraySize));
   }
 
   // Get location of each piece, using the element number as the id
@@ -132,6 +135,23 @@ export function scramble(rowSize: number, columnSize: number): PuzzleState {
       column: Math.floor(emptyIndex % columnSize),
     },
   };
+}
+
+export function isPuzzleSolved(puzzle: PuzzleState) {
+  for (let i = 0; i < puzzle.pieces.length - 1; i++) {
+    const thisPiece = puzzle.pieces[i];
+    const nextPiece = puzzle.pieces[i + 1];
+    if (thisPiece.row > nextPiece.row) {
+      return false;
+    } else if (
+      thisPiece.row === nextPiece.row &&
+      thisPiece.column > nextPiece.column
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function solveLastPieceInRow(
@@ -515,6 +535,14 @@ export function isInSquareRing(
   }
 
   return false;
+}
+
+export function getTargetRowFromId(id: number, rowSize: number) {
+  return Math.floor((id - 1) / rowSize);
+}
+
+export function getTargetColumnFromId(id: number, rowSize: number) {
+  return (id - 1) % rowSize;
 }
 
 export function getRowIds(rowNumber: number, rowSize: number): number[] {
@@ -973,6 +1001,37 @@ export function rotate(
   return [actions, shadowPuzzle];
 }
 
+function moveEmptyInDirection(
+  puzzle: PuzzleState,
+  spaces: number,
+  direction: MoveAction['type'],
+): [PuzzleAction[], PuzzleState] {
+  const actions: PuzzleAction[] = [];
+  let shadowPuzzle: PuzzleState = JSON.parse(JSON.stringify(puzzle));
+  const emptyPiece = shadowPuzzle.pieces.find((piece) => piece.row === shadowPuzzle.emptyLocation.row && piece.column === shadowPuzzle.emptyLocation.column);
+  const emptyId = emptyPiece?.id || shadowPuzzle.pieces.length;
+
+  for (let remainingMoves = spaces; remainingMoves > 0; remainingMoves--) {
+    // if (remainingMoves === 1 && direction === 'move-down') {
+    //   // Prevent upwards movement of the empty space if it is on the row below the target
+    //   // This is done to ensure we don't mess with any slots already solved
+    //   break;
+    // }
+
+    console.log(`Empty movement (${direction}). Remaining moves: `, remainingMoves);
+    console.log(puzzleToString(shadowPuzzle));
+    const action: PuzzleAction = {
+      id: emptyId,
+      type: direction,
+    };
+    // Update shadow puzzle
+    shadowPuzzle = puzzleReducer(shadowPuzzle, action);
+    actions.push(action);
+  }
+
+  return [actions, shadowPuzzle];
+}
+
 function walkEmptyToPiece(
   puzzle: PuzzleState,
   piece: PuzzlePiece,
@@ -987,6 +1046,7 @@ function walkEmptyToPiece(
   // Solve for row
   const actions: PuzzleAction[] = [];
   let shadowPuzzle: PuzzleState = JSON.parse(JSON.stringify(puzzle));
+  let newActions: PuzzleAction[] = [];
 
   // Find delta row and delta col
   // (-) row points up, (-) col points left
@@ -994,80 +1054,136 @@ function walkEmptyToPiece(
   const dCol = emptyCol - targetColumn;
   // Check if we can skip this step
   if (dRow !== 0 || dCol !== 0) {
-    let touchingTargetPiece = false;
-    // Move up/down
-    let direction: PuzzleAction['type'] = dRow > 0 ? 'move-down' : 'move-up';
-    for (
-      let remainingRowMoves = Math.abs(dRow);
-      remainingRowMoves > 0 && !touchingTargetPiece;
-      remainingRowMoves--
-    ) {
-      if (remainingRowMoves === 1 && direction === 'move-down') {
-        // Prevent upwards movement of the empty space if it is on the row below the target
-        // This is done to ensure we don't mess with any slots already solved
-        break;
-      }
+    // Prioritize moves (down >= right > up >= left)
+    const yDirection = dRow < 0 ? 'move-down' : 'move-up';
+    const xDirection = dCol < 0 ? 'move-right' : 'move-left';
 
-      console.log('Move up/down. Remaining moves: ', remainingRowMoves);
-      logPuzzle(shadowPuzzle);
-      const currentEmptyCol = shadowPuzzle.emptyLocation.column;
-      const currentEmptyRow = shadowPuzzle.emptyLocation.row;
-      // Get piece ID above/below empty space
-      const verticalDiff = direction === 'move-up' ? -1 : 1;
-      const pieceToMove = shadowPuzzle.pieces.find(
-        piece =>
-          piece.column === currentEmptyCol &&
-          piece.row + verticalDiff === currentEmptyRow,
-      );
-      if (pieceToMove) {
-        if (pieceToMove.id === pieceId) {
-          // Stop. Don't intend to move target piece in this step
-          touchingTargetPiece = true;
-        } else {
-          const action: PuzzleAction = {
-            id: pieceToMove.id,
-            type: direction,
-          };
-          // Update shadow puzzle
-          shadowPuzzle = puzzleReducer(shadowPuzzle, action);
-          actions.push(action);
-        }
+    if (yDirection === 'move-down') {
+      let spaces = Math.abs(dRow);
+      if (emptyCol === targetColumn) {
+        // Go one less; we just want to be touching the piece
+        spaces--;
       }
+      [newActions, shadowPuzzle] = moveEmptyInDirection(
+        shadowPuzzle,
+        spaces,
+        'move-down',
+      );
+      actions.push(...newActions);
     }
 
-    // Move left/right
-    direction = dCol > 0 ? 'move-right' : 'move-left';
-    for (
-      let remainingColMoves = Math.abs(dCol);
-      remainingColMoves > 0 && !touchingTargetPiece;
-      remainingColMoves--
-    ) {
-      console.log('Move left/right. Remaining moves: ', remainingColMoves);
-      logPuzzle(shadowPuzzle);
-      const currentEmptyCol = shadowPuzzle.emptyLocation.column;
-      const currentEmptyRow = shadowPuzzle.emptyLocation.row;
-      // Get piece ID left/right empty space
-      const horizontalDiff = direction === 'move-left' ? -1 : 1;
-      const pieceToMove = shadowPuzzle.pieces.find(
-        piece =>
-          piece.column + horizontalDiff === currentEmptyCol &&
-          piece.row === currentEmptyRow,
-      );
-      if (pieceToMove) {
-        if (pieceToMove.id === pieceId) {
-          // Stop. Don't intend to move target piece in this step
-          touchingTargetPiece = true;
-        } else {
-          const action: PuzzleAction = {
-            id: pieceToMove.id,
-            type: direction,
-          };
-          // Update shadow puzzle
-          shadowPuzzle = puzzleReducer(shadowPuzzle, action);
-          actions.push(action);
-        }
+    if (xDirection === 'move-right') {
+      let spaces = Math.abs(dCol);
+      if (emptyRow === targetRow) {
+        // Go one less; we just want to be touching the piece
+        spaces--;
       }
+      [newActions, shadowPuzzle] = moveEmptyInDirection(
+        shadowPuzzle,
+        spaces,
+        'move-right',
+      );
+      actions.push(...newActions);
     }
+
+    if (yDirection === 'move-up') {
+      let spaces = Math.abs(dRow);
+      if (emptyCol === targetColumn) {
+        // Go one less; we just want to be touching the piece
+        spaces--;
+      }
+      [newActions, shadowPuzzle] = moveEmptyInDirection(
+        shadowPuzzle,
+        spaces,
+        'move-up',
+      );
+      actions.push(...newActions);
+    }
+
+    if (xDirection === 'move-left') {
+      let spaces = Math.abs(dCol);
+      if (emptyRow === targetRow) {
+        // Go one less; we just want to be touching the piece
+        spaces--;
+      }
+      [newActions, shadowPuzzle] = moveEmptyInDirection(
+        shadowPuzzle,
+        spaces,
+        'move-left',
+      );
+      actions.push(...newActions);
+    }
+    // for (
+    //   let remainingRowMoves = Math.abs(dRow);
+    //   remainingRowMoves > 0 && !touchingTargetPiece;
+    //   remainingRowMoves--
+    // ) {
+    //   if (remainingRowMoves === 1 && direction === 'move-down') {
+    //     // Prevent upwards movement of the empty space if it is on the row below the target
+    //     // This is done to ensure we don't mess with any slots already solved
+    //     break;
+    //   }
+
+    //   console.log('Move up/down. Remaining moves: ', remainingRowMoves);
+    //   logPuzzle(shadowPuzzle);
+    //   const currentEmptyCol = shadowPuzzle.emptyLocation.column;
+    //   const currentEmptyRow = shadowPuzzle.emptyLocation.row;
+    //   // Get piece ID above/below empty space
+    //   const verticalDiff = direction === 'move-up' ? -1 : 1;
+    //   const pieceToMove = shadowPuzzle.pieces.find(
+    //     piece =>
+    //       piece.column === currentEmptyCol &&
+    //       piece.row + verticalDiff === currentEmptyRow,
+    //   );
+    //   if (pieceToMove) {
+    //     if (pieceToMove.id === pieceId) {
+    //       // Stop. Don't intend to move target piece in this step
+    //       touchingTargetPiece = true;
+    //     } else {
+    //       const action: PuzzleAction = {
+    //         id: pieceToMove.id,
+    //         type: direction,
+    //       };
+    //       // Update shadow puzzle
+    //       shadowPuzzle = puzzleReducer(shadowPuzzle, action);
+    //       actions.push(action);
+    //     }
+    //   }
+    // }
+
+    // // Move left/right
+    // direction = dCol > 0 ? 'move-right' : 'move-left';
+    // for (
+    //   let remainingColMoves = Math.abs(dCol);
+    //   remainingColMoves > 0 && !touchingTargetPiece;
+    //   remainingColMoves--
+    // ) {
+    //   console.log('Move left/right. Remaining moves: ', remainingColMoves);
+    //   logPuzzle(shadowPuzzle);
+    //   const currentEmptyCol = shadowPuzzle.emptyLocation.column;
+    //   const currentEmptyRow = shadowPuzzle.emptyLocation.row;
+    //   // Get piece ID left/right empty space
+    //   const horizontalDiff = direction === 'move-left' ? -1 : 1;
+    //   const pieceToMove = shadowPuzzle.pieces.find(
+    //     piece =>
+    //       piece.column + horizontalDiff === currentEmptyCol &&
+    //       piece.row === currentEmptyRow,
+    //   );
+    //   if (pieceToMove) {
+    //     if (pieceToMove.id === pieceId) {
+    //       // Stop. Don't intend to move target piece in this step
+    //       touchingTargetPiece = true;
+    //     } else {
+    //       const action: PuzzleAction = {
+    //         id: pieceToMove.id,
+    //         type: direction,
+    //       };
+    //       // Update shadow puzzle
+    //       shadowPuzzle = puzzleReducer(shadowPuzzle, action);
+    //       actions.push(action);
+    //     }
+    //   }
+    // }
   }
 
   console.log('Completed walking the empty slot to target: ', piece);
@@ -1691,12 +1807,34 @@ export function solvePuzzle(puzzle: PuzzleState): PuzzleAction[] {
   let shadowPuzzle: PuzzleState = JSON.parse(JSON.stringify(puzzle));
   let newActions: PuzzleAction[] = [];
   const actions: PuzzleAction[] = [];
-  for (let i = 0; i < puzzle.rowSize; i++) {
+
+  const rowsToSolve = puzzle.columnSize - 2;
+  const columnsToSolve = puzzle.rowSize - 3;
+
+  for (let i = 0; i < rowsToSolve; i++) {
     [newActions, shadowPuzzle] = solveRow(shadowPuzzle, i);
     actions.push(...newActions);
-    [newActions, shadowPuzzle] = solveColumn(shadowPuzzle, i);
-    actions.push(...newActions);
+    if (i < columnsToSolve) {
+      [newActions, shadowPuzzle] = solveColumn(shadowPuzzle, i);
+      actions.push(...newActions);
+    }
   }
+
+  console.log('Solving through A* method...');
+  console.log(puzzleToString(shadowPuzzle));
+
+  const slicedPuzzle = slicePuzzle(shadowPuzzle, rowsToSolve, columnsToSolve);
+  const goal = getPuzzleGoal(slicedPuzzle);
+
+  newActions = aStarSolve(slicedPuzzle, goal);
+  actions.push(...newActions);
+
+  // for (let i = 0; i < puzzle.rowSize; i++) {
+  //   [newActions, shadowPuzzle] = solveRow(shadowPuzzle, i);
+  //   actions.push(...newActions);
+  //   [newActions, shadowPuzzle] = solveColumn(shadowPuzzle, i);
+  //   actions.push(...newActions);
+  // }
 
   return actions;
 }
@@ -1731,6 +1869,213 @@ export function puzzleToString(puzzle: PuzzleState) {
     puzzleString += '\n';
   }
   return puzzleString;
+}
+
+type Range = { start: number; end: number };
+type PuzzleSliceOption = number | Range;
+
+export function slicePuzzle(
+  puzzle: PuzzleState,
+  rowSlice: PuzzleSliceOption,
+  columnSlice: PuzzleSliceOption,
+): PuzzleState {
+  const { rowSize, columnSize, emptyLocation } = puzzle;
+  const rowMax = columnSize - 1;
+  const columnMax = rowSize - 1;
+
+  let rowStart: number;
+  let rowEnd: number;
+  let columnStart: number;
+  let columnEnd: number;
+  if (typeof rowSlice === 'number') {
+    rowStart = rowSlice;
+    rowEnd = rowMax;
+  } else {
+    rowStart = rowSlice.start;
+    rowEnd = rowSlice.end;
+  }
+
+  if (typeof columnSlice === 'number') {
+    columnStart = columnSlice;
+    columnEnd = columnMax;
+  } else {
+    columnStart = columnSlice.start;
+    columnEnd = columnSlice.end;
+  }
+
+  if (
+    emptyLocation.row < rowStart ||
+    emptyLocation.row > rowEnd ||
+    emptyLocation.column < columnStart ||
+    emptyLocation.column > columnEnd
+  ) {
+    throw new Error(
+      `Empty Location is outside of the area in the Puzzle that is being split. ${JSON.stringify(
+        puzzle,
+      )}`,
+    );
+  }
+
+  const newSlice: PuzzleState = {
+    rowSize: columnEnd - columnStart + 1,
+    columnSize: rowEnd - rowStart + 1,
+    emptyLocation,
+    pieces: [],
+  };
+
+  let newRow = 0;
+  let newColumn = 0;
+  for (let row = rowStart; row <= rowEnd; row++) {
+    for (let column = columnStart; column <= columnEnd; column++) {
+      const piece = puzzle.pieces.find(
+        puzzlePiece => puzzlePiece.row === row && puzzlePiece.column === column,
+      );
+      if (row === emptyLocation.row && column === emptyLocation.column) {
+        newSlice.emptyLocation = { row: newRow, column: newColumn };
+      }
+
+      if (piece) {
+        newSlice.pieces.push({
+          id: piece.id,
+          row: newRow,
+          column: newColumn,
+        });
+      } else {
+        throw new Error(
+          `Trying to slice puzzle. No piece at ${JSON.stringify({
+            row,
+            column,
+          })}. ${JSON.stringify(puzzle)}`,
+        );
+      }
+      newColumn++;
+    }
+    newColumn = 0;
+    newRow++;
+  }
+
+  return newSlice;
+}
+
+export function puzzleToMatrix(puzzle: PuzzleState): number[][] {
+  const matrix: number[][] = [];
+  const { pieces, columnSize } = puzzle;
+  for (let i = 0; i < columnSize; i++) {
+    matrix.push([]);
+  }
+
+  pieces.forEach((piece, i) => {
+    const { row, column } = piece;
+    if (
+      puzzle.emptyLocation.row === row &&
+      puzzle.emptyLocation.column === column
+    ) {
+      matrix[row][column] = -1;
+    } else {
+      matrix[row][column] = piece.id;
+    }
+  });
+  return matrix;
+}
+
+export function isPuzzleMatrixSolved(puzzle: number[][]): boolean {
+  if (puzzle.length === 0 || puzzle[0].length === 0) {
+    return true;
+  }
+
+  // Add up the distance each piece is from their target piece
+  const rowCount = puzzle.length;
+  const columnCount = puzzle[0].length;
+
+  for (let row = 0; row < rowCount; row++) {
+    for (let column = 0; column < columnCount; column++) {
+      const pieceId = puzzle[row][column];
+      const goalRow = getTargetRowFromId(pieceId, columnCount);
+      if (goalRow !== row) {
+        return false;
+      }
+      const goalColumn = getTargetColumnFromId(pieceId, columnCount);
+      if (goalColumn !== column) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+export function puzzleToPuzzleState(
+  puzzle: number[][],
+  emptyId?: number,
+): PuzzleState {
+  let state: PuzzleState = {
+    pieces: [],
+    emptyLocation: { row: -1, column: -1 },
+    rowSize: -1,
+    columnSize: -1,
+  };
+
+  if (puzzle.length === 0 || puzzle[0].length === 0) {
+    throw new Error(
+      `Cannot create a puzzle with a 0 dimension (from ${JSON.stringify(
+        puzzle,
+      )}`,
+    );
+  }
+
+  state.rowSize = puzzle[0].length;
+  state.columnSize = puzzle.length;
+
+  const rowCount = state.columnSize;
+  const columnCount = state.rowSize;
+
+  for (let row = 0; row < rowCount; row++) {
+    for (let column = 0; column < columnCount; column++) {
+      const pieceId = puzzle[row][column];
+      if (pieceId === -1) {
+        // Empty piece
+        state.emptyLocation = { row, column };
+        state.pieces.push({
+          row,
+          column,
+          id: emptyId || state.rowSize * state.columnSize,
+        });
+      } else {
+        state.pieces.push({
+          row,
+          column,
+          id: pieceId,
+        });
+      }
+    }
+  }
+
+  state.pieces.sort((a, b) => a.id - b.id);
+
+  return state;
+}
+
+export function getPuzzleGoal(puzzle: PuzzleState): number[][] {
+  const matrix: number[][] = [];
+  const { columnSize, rowSize } = puzzle;
+  for (let i = 0; i < columnSize; i++) {
+    matrix.push([]);
+  }
+
+  const rowMax = columnSize - 1;
+  const columnMax = rowSize - 1;
+
+  const pieces = puzzle.pieces.map(piece => piece.id);
+  pieces.sort();
+
+  pieces.forEach((id, i) => {
+    const row = Math.floor(i / rowSize);
+    const column = i % rowSize;
+    matrix[row][column] = id;
+  });
+
+  matrix[rowMax][columnMax] = -1;
+  return matrix;
 }
 
 export function logPuzzle(puzzle: PuzzleState) {

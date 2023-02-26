@@ -47,8 +47,9 @@
 
 .puzzle-piece__content {
   background-color: #e76f51;
-  border: 1px solid rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-border);
   font-size: 24px;
+  font-weight: bold;
   display: flex;
   justify-content: center;
   align-items: center;

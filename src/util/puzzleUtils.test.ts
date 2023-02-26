@@ -7,13 +7,76 @@ import {
   getPieceAt,
   getPieceIdAt,
   getRowIds,
+  getRowNumberFromBottom,
   isDirectlyAbovePiece,
   isDirectlyBelowPiece,
   isDirectlyLeftOfPiece,
   isDirectlyRightOfPiece,
   isInSquareRing,
   isRightOfPiece,
+  puzzleToMatrix,
+  puzzleToPuzzleState,
+  slicePuzzle,
 } from './puzzleUtils';
+
+describe('getRowNumberFromBottom', () => {
+  it('Returns 1 when empty piece is anywhere on the last row', () => {
+    expect(getRowNumberFromBottom(5, 24)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(5, 23)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(5, 22)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(5, 21)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(5, 20)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(4, 15)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(4, 14)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(4, 13)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(4, 12)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(3, 8)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(3, 7)).toStrictEqual(1);
+    expect(getRowNumberFromBottom(3, 6)).toStrictEqual(1);
+  });
+
+  it('Returns 2 when empty piece is anywhere on the second-to-last row', () => {
+    expect(getRowNumberFromBottom(5, 19)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(5, 18)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(5, 17)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(5, 16)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(5, 15)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(4, 11)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(4, 10)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(4, 9)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(4, 8)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(3, 5)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(3, 4)).toStrictEqual(2);
+    expect(getRowNumberFromBottom(3, 3)).toStrictEqual(2);
+  });
+
+  it('Returns 3 when empty piece is anywhere on the third-to-last row', () => {
+    expect(getRowNumberFromBottom(5, 14)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(5, 13)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(5, 12)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(5, 11)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(5, 10)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(4, 7)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(4, 6)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(4, 5)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(4, 4)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(3, 2)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(3, 1)).toStrictEqual(3);
+    expect(getRowNumberFromBottom(3, 0)).toStrictEqual(3);
+  });
+
+  it('Returns 4 when empty piece is anywhere on the fourth-to-last row', () => {
+    expect(getRowNumberFromBottom(5, 9)).toStrictEqual(4);
+    expect(getRowNumberFromBottom(5, 8)).toStrictEqual(4);
+    expect(getRowNumberFromBottom(5, 7)).toStrictEqual(4);
+    expect(getRowNumberFromBottom(5, 6)).toStrictEqual(4);
+    expect(getRowNumberFromBottom(5, 5)).toStrictEqual(4);
+    expect(getRowNumberFromBottom(4, 3)).toStrictEqual(4);
+    expect(getRowNumberFromBottom(4, 2)).toStrictEqual(4);
+    expect(getRowNumberFromBottom(4, 1)).toStrictEqual(4);
+    expect(getRowNumberFromBottom(4, 0)).toStrictEqual(4);
+  });
+});
 
 // Puzzle relative location
 describe('isInSquareRing', () => {
@@ -1206,8 +1269,98 @@ describe('getPieceIdAt', () => {
 });
 
 // Puzzle action sets
-describe('rotate', () => {});
+// describe('rotate', () => {});
 
-describe('walkEmptyToPiece', () => {});
+// describe('walkEmptyToPiece', () => {});
 
-describe('slopeWalkToTarget', () => {});
+// describe('slopeWalkToTarget', () => {});
+
+describe('puzzleToMatrix', () => {
+  it('Should convert puzzle state to a full matrix with no undefined elements', () => {
+    const state: PuzzleState = {
+      pieces: [
+        { id: 1, row: 0, column: 1 },
+        { id: 2, row: 1, column: 1 },
+        { id: 3, row: 0, column: 2 },
+        { id: 4, row: 1, column: 0 },
+        { id: 5, row: 1, column: 2 },
+        { id: -1, row: 0, column: 0 },
+      ],
+      rowSize: 3,
+      columnSize: 2,
+      emptyLocation: { row: 0, column: 0 },
+    };
+
+    const expected = [[-1, 1, 3], [4, 2, 5]];
+
+    const matrix = puzzleToMatrix(state);
+    expect(matrix).toMatchObject(expected);
+  });
+});
+
+describe('puzzleToPuzzleState', () => {
+  it('Should convert the matrix to a PuzzleState object', () => {
+    const matrix = [[-1, 4, 5], [7, 8, 6]];
+    const expected: PuzzleState = {
+      rowSize: 3,
+      columnSize: 2,
+      emptyLocation: { row: 0, column: 0 },
+      pieces: [
+        { id: 4, row: 0, column: 1 },
+        { id: 5, row: 0, column: 2 },
+        { id: 6, row: 1, column: 2 },
+        { id: 7, row: 1, column: 0 },
+        { id: 8, row: 1, column: 1 },
+        { id: 9, row: 0, column: 0 },
+      ],
+    };
+
+    expect(puzzleToPuzzleState(matrix, 9)).toMatchObject(expected);
+  });
+});
+
+describe('slicePuzzle', () => {
+  it('Should slice starting with the row & column provided', () => {
+    const puzzleState: PuzzleState = {
+      rowSize: 4,
+      columnSize: 4,
+      emptyLocation: { row: 3, column: 3 },
+      pieces: [
+        { id: 1, row: 0, column: 0 },
+        { id: 2, row: 0, column: 1 },
+        { id: 3, row: 0, column: 2 },
+        { id: 4, row: 0, column: 3 },
+        { id: 5, row: 1, column: 0 },
+        { id: 6, row: 1, column: 1 },
+        { id: 7, row: 1, column: 2 },
+        { id: 8, row: 1, column: 3 },
+        { id: 9, row: 2, column: 0 },
+        { id: 10, row: 2, column: 1 },
+        { id: 11, row: 2, column: 2 },
+        { id: 12, row: 2, column: 3 },
+        { id: 13, row: 3, column: 0 },
+        { id: 14, row: 3, column: 1 },
+        { id: 15, row: 3, column: 2 },
+        { id: 16, row: 3, column: 3 },
+      ],
+    };
+
+    const slice = slicePuzzle(puzzleState, 2, 1);
+
+    const expectedState: PuzzleState = {
+      rowSize: 3,
+      columnSize: 2,
+      emptyLocation: { row: 1, column: 2 },
+      pieces: [
+        { id: 10, row: 0, column: 0 },
+        { id: 11, row: 0, column: 1 },
+        { id: 12, row: 0, column: 2 },
+        { id: 14, row: 1, column: 0 },
+        { id: 15, row: 1, column: 1 },
+        { id: 16, row: 1, column: 2 },
+      ],
+    };
+
+    expect(slice).toMatchObject(expectedState);
+  });
+});

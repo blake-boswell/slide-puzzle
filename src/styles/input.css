@@ -9,3 +9,9 @@ input[type='file'] {
 select {
   padding: 4px;
 }
+
+input {
+  background-color: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
