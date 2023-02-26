@@ -39,14 +39,46 @@ export function puzzleReducer(state: PuzzleState, action: PuzzleAction) {
 
   const { row: emptyRow, column: emptyCol } = emptyLocation;
   const rowMin = 0;
-  const rowMax = rowSize - 1;
+  const rowMax = columnSize - 1;
   const colMin = 0;
-  const colMax = columnSize - 1;
+  const colMax = rowSize - 1;
   const targetPieceIndex = pieces.findIndex(piece => piece.id === id);
   if (targetPieceIndex > -1) {
-    const { row, column } = pieces[targetPieceIndex];
+    let { row, column } = pieces[targetPieceIndex];
+    let moveType = type;
 
-    switch (type) {
+    if (row === emptyRow && column === emptyCol) {
+      // We are trying to move the empty piece.
+      // Move the piece next to it in the direction we were trying to move.
+      switch (type) {
+        case 'move-up':
+          row -= 1;
+          moveType = 'move-down';
+          break;
+        case 'move-down':
+          row += 1;
+          moveType = 'move-up';
+          break;
+        case 'move-left':
+          column -= 1;
+          moveType = 'move-right';
+          break;
+        case 'move-right':
+          column += 1;
+          moveType = 'move-left';
+          break;
+      }
+    }
+
+    if (row < rowMin || row > rowMax || column < colMin || column > colMax) {
+      console.error('Tried to move a piece that was out of bounds. ', {
+        row,
+        column,
+      });
+      return state;
+    }
+
+    switch (moveType) {
       case 'move-up': {
         // Check to see if move is legal
         if (row === rowMin) return state;
