@@ -194,69 +194,70 @@ const Puzzle = () => {
 
   const handleImageLoad: React.ChangeEventHandler<HTMLInputElement> = e => {
     const { files } = e.target;
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-
-      if (!file.type.startsWith('image/')) {
-        continue;
-      }
-
-      const reader = new FileReader();
-      reader.onload = e => {
-        const { result } = e.target;
-        if (typeof result === 'string') {
-          // Resize the image
-          const image = new Image();
-          image.onload = e => {
-            let puzzleWidth;
-            if (puzzleRef.current) {
-              puzzleWidth = puzzleRef.current.offsetWidth;
-            }
-
-            const canvas = document.createElement('canvas');
-            const max_size = puzzleWidth;
-            let width = image.width;
-            let height = image.height;
-
-            // Resize to fit the puzzle
-            if (width > height) {
-              if (width > max_size) {
-                height *= max_size / width;
-                width = max_size;
-              }
-            } else {
-              if (height > max_size) {
-                width *= max_size / height;
-                height = max_size;
-              }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            console.log(width, height);
-
-            // Draw image on canvas
-            canvas.getContext('2d').drawImage(image, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL('image/jpeg');
-
-            setImageHeight(height);
-            setImageWidth(width);
-            setImageSource(dataUrl);
-          };
-          image.src = result;
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+  
+        if (!file.type.startsWith('image/')) {
+          continue;
         }
-      };
-      reader.readAsDataURL(file);
+  
+        const reader = new FileReader();
+        reader.onload = e => {
+          const result = e.target?.result || undefined;
+          if (typeof result === 'string') {
+            // Resize the image
+            const image = new Image();
+            image.onload = e => {
+              let puzzleWidth;
+              if (puzzleRef.current) {
+                puzzleWidth = puzzleRef.current.offsetWidth;
+                const canvas = document.createElement('canvas');
+                const max_size = puzzleWidth;
+                let width = image.width;
+                let height = image.height;
+    
+                // Resize to fit the puzzle
+                if (width > height) {
+                  if (width > max_size) {
+                    height *= max_size / width;
+                    width = max_size;
+                  }
+                } else {
+                  if (height > max_size) {
+                    width *= max_size / height;
+                    height = max_size;
+                  }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                console.log(width, height);
+    
+                // Draw image on canvas
+                canvas.getContext('2d')?.drawImage(image, 0, 0, width, height);
+                const dataUrl = canvas.toDataURL('image/jpeg');
+    
+                setImageHeight(height);
+                setImageWidth(width);
+                setImageSource(dataUrl);
+              }
+            };
+            image.src = result;
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
   const showModal = () => {
-    if (typeof modalRef.current.showModal === 'function') {
+    if (modalRef.current && typeof modalRef.current.showModal === 'function') {
       modalRef.current.showModal();
     }
   };
 
   const hideModal = () => {
-    if (typeof modalRef.current.close === 'function') {
+    if (modalRef.current && typeof modalRef.current.close === 'function') {
       modalRef.current.close();
     }
   };
@@ -359,7 +360,7 @@ const Puzzle = () => {
                 id="up-to-id"
                 type="number"
                 value={solveToId}
-                onChange={e => setSolveToId(e.target.valueAsNumber || null)}
+                onChange={e => setSolveToId(e.target.valueAsNumber || '')}
               />
             </div>
             <button onClick={handleSolve}>Solve</button>
