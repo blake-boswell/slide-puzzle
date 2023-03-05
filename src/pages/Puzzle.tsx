@@ -49,7 +49,6 @@ const Puzzle = () => {
   const [imageSource, setImageSource] = useState('');
   const [imageHeight, setImageHeight] = useState(0);
   const [imageWidth, setImageWidth] = useState(0);
-  const [solveToId, setSolveToId] = useState<number | ''>('');
   const puzzleRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDialogElement>(null);
 
@@ -262,24 +261,19 @@ const Puzzle = () => {
     }
   };
 
+  async function movesWithDelay(moves: PuzzleAction[], delay: number) {
+    if (moves.length < 1) return Promise.resolve();
+
+    for (let moveIndex = 0; moveIndex < moves.length; moveIndex++) {
+      dispatchMove(moves[moveIndex]);
+      await wait(delay);
+    }
+    return Promise.resolve();
+  }
+
   const handleSolve = async () => {
-    async function movesWithDelay(moves: PuzzleAction[], delay: number) {
-      if (moves.length < 1) return Promise.resolve();
-
-      for (let moveIndex = 0; moveIndex < moves.length; moveIndex++) {
-        dispatchMove(moves[moveIndex]);
-        await wait(delay);
-      }
-      return Promise.resolve();
-    }
-
-    if (solveToId) {
-      const moves = solvePuzzleUpToId(puzzle, solveToId);
-      movesWithDelay(moves, 200);
-    } else {
-      const moves = solvePuzzle(puzzle);
-      movesWithDelay(moves, 200);
-    }
+    const moves = solvePuzzle(puzzle);
+    movesWithDelay(moves, 200);
   };
 
   return (
@@ -354,18 +348,8 @@ const Puzzle = () => {
         </div>
         <div className="puzzle__footer">
           <div className="action-buttons">
-            <div className="d-flex align-center">
-              <label htmlFor="up-to-id">Solve up to ID:</label>
-              <input
-                id="up-to-id"
-                type="number"
-                value={solveToId}
-                onChange={e => setSolveToId(e.target.valueAsNumber || '')}
-              />
-            </div>
-            <button onClick={handleSolve}>Solve</button>
-            <button onClick={() => dispatchMove({ type: 'auto-complete' })}>
-              Complete
+            <button onClick={handleSolve}>
+              Solve for me
             </button>
             <button
               className="btn--accent"

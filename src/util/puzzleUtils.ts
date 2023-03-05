@@ -1207,8 +1207,8 @@ function slopeWalkToTarget(
   );
   if (pieceOfInterestIndex > -1) {
     let isPieceSolved = false;
-    let currentDirection: Direction;
-    let lastDirection: Direction;
+    let currentDirection: Direction | undefined;
+    let lastDirection: Direction | undefined;
     let iterationCount = 0;
     while (!isPieceSolved && iterationCount < 25) {
       iterationCount++;
